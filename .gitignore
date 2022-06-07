@@ -102,3 +102,9 @@ dist
 
 # TernJS port file
 .tern-port
+
+#circuits build files
+
+circuits/build
+
+circuit/powersOfTau28_hez_final_20.ptau

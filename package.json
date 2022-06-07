@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "ZkPoolTogether is the zkp version of PoolTogether; usage of zero-knowledge proof systems will protect users' identity, and the amount users are depositing.",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:circuits:compile": "chmod u+x scripts/compile-circuit.sh && ./scripts/compile-circuit.sh"
   },
   "repository": {
     "type": "git",
@@ -18,12 +19,11 @@
   "dependencies": {
     "@openzeppelin/contracts": "^4.6.0",
     "axios": "^0.27.2",
-    "circom": "^0.5.46",
     "circomlib": "^2.0.3",
-    "crypto": "^1.0.1",
-    "ffjavascript": "^0.2.55",
-    "hardhat": "^2.9.7",
-    "snarkjs": "^0.4.19"
+    "circomlibjs": "^0.1.2",
+    "hardhat": "^2.9.3",
+    "snarkjs": "^0.4.16",
+    "ethers": "^5.6.4"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.6",
