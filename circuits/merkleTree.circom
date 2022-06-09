@@ -1,20 +1,8 @@
 pragma circom 2.0.0;
 
 include "../node_modules/circomlib/circuits/comparators.circom";
-include "../node_modules/circomlib/circuits/mimcsponge.circom";
-
+include "../node_modules/circomlib/circuits/poseidon.circom";
 // Computes MiMC([left, right])
-template HashLeftRight() {
-    signal input left;
-    signal input right;
-    signal output hash;
-
-    component hasher = MiMCSponge(2, 220, 1);
-    hasher.ins[0] <== left;
-    hasher.ins[1] <== right;
-    hasher.k <== 0;
-    hash <== hasher.outs[0];
-}
 
 template Sorting() {
     signal input elements[2]; // 0 is leaf and 1 is path_element;
@@ -48,23 +36,23 @@ template MerkleTreeInclusionProof(n) {
     
     for (var i = 0; i < n; i++){
         sorting[i] = Sorting();
-        levelHashes[i] = HashLeftRight();
+        levelHashes[i] = Poseidon(2);
         sorting[i].selector <== path_index[i];
         sorting[i].elements[0] <== path_elements[i];
         if(i == 0) {
             sorting[i].elements[1] <== leaf;
-            levelHashes[i].left <== sorting[i].out[0]; 
-            levelHashes[i].right <== sorting[i].out[1];
+            levelHashes[i].inputs[0] <== sorting[i].out[0]; 
+            levelHashes[i].inputs[1] <== sorting[i].out[1];
         }
         else {
-            sorting[i].elements[1] <== levelHashes[i-1].hash;
-            levelHashes[i].left <== sorting[i].out[0];
-            levelHashes[i].right <== sorting[i].out[1];
+            sorting[i].elements[1] <== levelHashes[i-1].out;
+            levelHashes[i].inputs[0] <== sorting[i].out[0];
+            levelHashes[i].inputs[1] <== sorting[i].out[1];
         }
 
     }
 
-    root <== levelHashes[n-1].hash;
+    root <== levelHashes[n-1].out;
 
     // [1,2,3,4] => 2,1 => A(0),B => C(1)
 }
