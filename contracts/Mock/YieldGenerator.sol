@@ -12,8 +12,7 @@ contract MockYieldGenerator {
         require(msg.sender == beneficiary);
         _;
     }
-//TODO
-//  add the formula for the calculation of yield generated based on pool balance
+//TODO add the formula for the calculation of yield generated based on pool balance
     function generateYield(uint[] memory _poolBalance) onlyOwner public {
             payable(msg.sender).transfer(1 ether);
     }
