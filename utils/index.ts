@@ -1,4 +1,13 @@
 import { BigNumber, BigNumberish, ethers } from "ethers";
+// @ts-ignore
+import { groth16 } from "snarkjs";
+import path from "path";
+interface Proof {
+  a: [BigNumberish, BigNumberish];
+  b: [[BigNumberish, BigNumberish], [BigNumberish, BigNumberish]];
+  c: [BigNumberish, BigNumberish];
+}
+
 // export const unstringifyBigInts = (o) => {
 //   if (typeof o == "string" && /^[0-9]+$/.test(o)) {
 //     return bigInt(o);
@@ -36,4 +45,25 @@ export const toFixedHex = (number: any, length = 32) => {
   while (str.length < length * 2) str = "0" + str;
   str = "0x" + str;
   return str;
+};
+
+export const prove = async (witness: any): Promise<Proof> => {
+  const wasmPath = path.join(
+    __dirname,
+    "../circuits/build/withdraw_js/withdraw.wasm"
+  );
+  const zkeyPath = path.join(__dirname, "../circuits/build/circuit_final.zkey");
+  console.log({ wasmPath, witness });
+
+  const { proof } = await groth16.fullProve(witness, wasmPath, zkeyPath);
+  console.log(proof);
+  const solProof: Proof = {
+    a: [proof.pi_a[0], proof.pi_a[1]],
+    b: [
+      [proof.pi_b[0][1], proof.pi_b[0][0]],
+      [proof.pi_b[1][1], proof.pi_b[1][0]],
+    ],
+    c: [proof.pi_c[0], proof.pi_c[1]],
+  };
+  return solProof;
 };

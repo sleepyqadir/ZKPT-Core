@@ -4,7 +4,10 @@
   "description": "ZkPoolTogether is the zkp version of PoolTogether; usage of zero-knowledge proof systems will protect users' identity, and the amount users are depositing.",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build:circuits:compile": "chmod u+x scripts/compile-circuit.sh && ./scripts/compile-circuit.sh"
+    "build:circuits:compile": "chmod u+x scripts/compile-circuit.sh && ./scripts/compile-circuit.sh",
+    "build:contracts:compile": "npx hardhat compile",
+    "fix:circuits:contracts": "node scripts/bump-solidity.ts",
+    "circuits": "npm run build:circuits:compile && npm run fix:circuits:contracts"
   },
   "repository": {
     "type": "git",
@@ -21,9 +24,10 @@
     "axios": "^0.27.2",
     "circomlib": "^2.0.3",
     "circomlibjs": "^0.1.2",
+    "ethers": "^5.6.4",
+    "fixed-merkle-tree": "^0.7.3",
     "hardhat": "^2.9.3",
-    "snarkjs": "^0.4.16",
-    "ethers": "^5.6.4"
+    "snarkjs": "^0.4.16"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.6",

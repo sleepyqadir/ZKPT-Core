@@ -3,8 +3,9 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable node/no-missing-import */
 import { expect, assert } from "chai";
+
 import { BigNumber, Contract } from "ethers";
-import { ethers } from "hardhat";
+import { ethers, waffle } from "hardhat";
 // eslint-disable-next-line node/no-missing-import
 import { getPoseidonFactory } from ".";
 // eslint-disable-next-line camelcase
@@ -18,6 +19,12 @@ import { Deposit } from "../classes/Deposit";
 // eslint-disable-next-line prettier/prettier
 import { MerkleTree } from "../src/merkleTree";
 import { PoseidonHasher } from "../classes/PoseidonHasher";
+
+const { solidity } = require("ethereum-waffle");
+
+const chai = require("chai");
+
+chai.use(solidity);
 
 // TODO: add support of env variables
 
@@ -92,68 +99,96 @@ describe("ZkPoolTogether", async () => {
   // });
 
   describe("Pool", async () => {
-    it("#Deposit and withdraw", async () => {
-      const [depositor, relayer, withdrawer] = await ethers.getSigners();
-      const deposit = Deposit.new(poseidon);
-      const commitment = deposit.commitment;
-      const depositTransaction = await ETHZkPool.connect(depositor).deposit(
-        commitment,
-        {
-          value: ETH_AMOUNT,
-        }
+    // it("#Deposit and withdraw", async () => {
+    //   const [depositor, relayer, withdrawer] = await ethers.getSigners();
+    //   const deposit = Deposit.new(poseidon);
+    //   const commitment = deposit.commitment;
+    //   const depositTransaction = await ETHZkPool.connect(depositor).deposit(
+    //     commitment,
+    //     {
+    //       value: ETH_AMOUNT,
+    //     }
+    //   );
+    //   const depositReciept = await depositTransaction.wait();
+
+    //   const events = await ETHZkPool.queryFilter(
+    //     ETHZkPool.filters.Deposit(),
+    //     depositReciept.blockHash
+    //   );
+
+    //   assert.equal(events[0].args.commitment, commitment);
+    //   deposit.leafIndex = events[0].args.leafIndex;
+
+    //   const tree = new MerkleTree(20, "test", new PoseidonHasher(poseidon));
+    //   assert.equal(await tree.root(), await ETHZkPool.roots(0));
+    //   await tree.insert(deposit.commitment);
+    //   assert.equal(tree.totalElements, await ETHZkPool.nextIndex());
+    //   assert.equal(await tree.root(), await ETHZkPool.roots(1));
+
+    //   const nullifierHash = deposit.nullifierHash;
+    //   const recipient = await withdrawer.getAddress();
+    //   const fee = 0;
+
+    //   const { root, path_elements, path_index } = await tree.path(
+    //     deposit.leafIndex
+    //   );
+
+    //   const witness = {
+    //     // Public
+    //     root,
+    //     nullifierHash,
+    //     recipient,
+    //     relayer: await relayer.getAddress(),
+    //     fee,
+    //     secret: 1,
+    //     // Private
+    //     nullifier: BigNumber.from(deposit.nullifier).toBigInt(),
+    //     pathElements: path_elements,
+    //     pathIndices: path_index,
+    //   };
+
+    //   const solidityProof = await prove(witness);
+
+    //   console.log({ witness, solidityProof });
+    //   const txWithdraw = await ETHZkPool.connect(relayer).withdraw(
+    //     solidityProof,
+    //     root,
+    //     nullifierHash,
+    //     recipient,
+    //     await relayer.getAddress(),
+    //     fee
+    //   );
+    //   const receiptWithdraw = await txWithdraw.wait();
+    //   console.log("Withdraw gas cost", receiptWithdraw.gasUsed.toNumber());
+    // });
+
+    it("#Start A new Draw", async () => {
+      const [signer] = await ethers.getSigners();
+      const transaction = await ETHZkPool.connect(signer).initDraw(3);
+      const reciept = transaction.wait();
+      expect(await ETHZkPool.numDraws()).equals(1);
+    });
+    it("#Should revert when non-owner try to create a new draw", async () => {
+      const [signer, nonOwner] = await ethers.getSigners();
+      await expect(ETHZkPool.connect(nonOwner).initDraw(3)).to.be.revertedWith(
+        "Ownable: caller is not the owner"
       );
-      const depositReciept = await depositTransaction.wait();
-
-      const events = await ETHZkPool.queryFilter(
-        ETHZkPool.filters.Deposit(),
-        depositReciept.blockHash
+    });
+    it("#Should Fail to create 2 draws", async () => {
+      const [signer] = await ethers.getSigners();
+      const transaction = await ETHZkPool.connect(signer).initDraw(3);
+      const reciept = transaction.wait();
+      await expect(ETHZkPool.connect(signer).initDraw(3)).to.be.revertedWith(
+        "Draw: previous draw not ended"
       );
+    });
+    it("#Get The End and Start Time of the Draw", async () => {
+      const [signer] = await ethers.getSigners();
+      const transaction = await ETHZkPool.connect(signer).initDraw(3);
+      const reciept = transaction.wait();
 
-      assert.equal(events[0].args.commitment, commitment);
-      deposit.leafIndex = events[0].args.leafIndex;
-
-      const tree = new MerkleTree(20, "test", new PoseidonHasher(poseidon));
-      assert.equal(await tree.root(), await ETHZkPool.roots(0));
-      await tree.insert(deposit.commitment);
-      assert.equal(tree.totalElements, await ETHZkPool.nextIndex());
-      assert.equal(await tree.root(), await ETHZkPool.roots(1));
-
-      const nullifierHash = deposit.nullifierHash;
-      const recipient = await withdrawer.getAddress();
-      const relayerAddress = await relayer.getAddress();
-      const fee = 0;
-
-      const { root, path_elements, path_index } = await tree.path(
-        deposit.leafIndex
-      );
-
-      const witness = {
-        // Public
-        root,
-        nullifierHash,
-        recipient,
-        relayer: await relayer.getAddress(),
-        fee,
-        secret: 1,
-        // Private
-        nullifier: BigNumber.from(deposit.nullifier).toBigInt(),
-        pathElements: path_elements,
-        pathIndices: path_index,
-      };
-
-      const solidityProof = await prove(witness);
-
-      console.log({ witness, solidityProof });
-      const txWithdraw = await ETHZkPool.connect(relayer).withdraw(
-        solidityProof,
-        root,
-        nullifierHash,
-        recipient,
-        await relayer.getAddress(),
-        fee
-      );
-      const receiptWithdraw = await txWithdraw.wait();
-      console.log("Withdraw gas cost", receiptWithdraw.gasUsed.toNumber());
+      const draw1 = await ETHZkPool.draws(0);
+      console.log({ draw1 });
     });
   });
 });
