@@ -2,6 +2,8 @@
 pragma solidity ^0.8.0;
 
 import "./MerkleTreeWithHistory.sol";
+import "./DrawManager.sol";
+import "./YieldGenerator.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 // SPDX-License-Identifier: GPL-3.0-only
 
@@ -20,7 +22,7 @@ interface IVerifier {
     ) external view returns (bool);
 }
 
-abstract contract Pool is MerkleTreeWithHistory, ReentrancyGuard {
+abstract contract Pool is MerkleTreeWithHistory , DrawManager, ReentrancyGuard,YieldGenerator {
     uint256 public immutable denomination;
     IVerifier public immutable verifier;
 
@@ -120,6 +122,10 @@ abstract contract Pool is MerkleTreeWithHistory, ReentrancyGuard {
 
     function isSpent(bytes32 _nullifierHash) public view returns (bool) {
         return nullifierHashes[_nullifierHash];
+    }
+
+    function triggerDrawWinnings() public onlyOwners {
+        _triggerDrawWinnings();
     }
 
     function isSpentArray(bytes32[] calldata _nullifierHashes)

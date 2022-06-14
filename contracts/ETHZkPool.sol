@@ -3,9 +3,9 @@
 pragma solidity ^0.8.0;
 
 import "./Pool.sol";
-import "./DrawManager.sol";
 
-contract ETHZkPool is Pool,DrawManager {
+contract ETHZkPool is Pool {
+    
     constructor(
         IVerifier _verifier,
         uint256 _denomination,
