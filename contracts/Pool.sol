@@ -1,11 +1,13 @@
-
+// SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.8.0;
 
 import "./MerkleTreeWithHistory.sol";
 import "./DrawManager.sol";
 import "./YieldGenerator.sol";
+
+import "./interfaces/IVerifier.sol";
+
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-// SPDX-License-Identifier: GPL-3.0-only
 
 struct Proof {
     uint256[2] a;
@@ -13,16 +15,12 @@ struct Proof {
     uint256[2] c;
 }
 
-interface IVerifier {
-    function verifyProof(
-        uint256[2] calldata a,
-        uint256[2][2] calldata b,
-        uint256[2] calldata c,
-        uint256[5] calldata input
-    ) external view returns (bool);
-}
-
-abstract contract Pool is MerkleTreeWithHistory , DrawManager, ReentrancyGuard,YieldGenerator {
+contract Pool is
+    MerkleTreeWithHistory,
+    DrawManager,
+    ReentrancyGuard,
+    YieldGenerator
+{
     uint256 public immutable denomination;
     IVerifier public immutable verifier;
 
@@ -62,13 +60,14 @@ abstract contract Pool is MerkleTreeWithHistory , DrawManager, ReentrancyGuard,Y
   */
     function deposit(bytes32 _commitment) external payable nonReentrant {
         uint32 insertedIndex = _insert(_commitment);
-        _processDeposit();
+
+        require(
+            msg.value == denomination,
+            "Please send `mixDenomination` ETH along with transaction"
+        );
 
         emit Deposit(_commitment, insertedIndex, block.timestamp);
     }
-
-    /** @dev this function is defined in a child contract */
-    function _processDeposit() internal virtual;
 
     /**
     @dev Withdraw a deposit from the contract. `proof` is a zkSNARK proof data, and input is an array of circuit public inputs
@@ -109,23 +108,28 @@ abstract contract Pool is MerkleTreeWithHistory , DrawManager, ReentrancyGuard,Y
         );
 
         nullifierHashes[_nullifierHash] = true;
-        _processWithdraw(_recipient, _relayer, _fee);
+
+        require(
+            msg.value == 0,
+            "Message value is supposed to be zero for ETH instance"
+        );
+
+        (bool success, ) = _recipient.call{value: (denomination - _fee)}("");
+        require(success, "payment to _recipient did not go thru");
+        if (_fee > 0) {
+            (success, ) = _relayer.call{value: _fee}("");
+            require(success, "payment to _relayer did not go thru");
+        }
+
         emit Withdrawal(_recipient, _nullifierHash, _relayer, _fee);
     }
-
-    /** @dev this function is defined in a child contract */
-    function _processWithdraw(
-        address payable _recipient,
-        address payable _relayer,
-        uint256 _fee
-    ) internal virtual;
 
     function isSpent(bytes32 _nullifierHash) public view returns (bool) {
         return nullifierHashes[_nullifierHash];
     }
 
-    function triggerDrawWinnings() public onlyOwners {
-        _triggerDrawWinnings();
+    function triggerDrawComplete() public {
+        _triggerDrawComplete(currentDrawId);
     }
 
     function isSpentArray(bytes32[] calldata _nullifierHashes)

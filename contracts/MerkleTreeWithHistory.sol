@@ -2,12 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-interface Hasher {
-    function poseidon(bytes32[2] calldata leftRight)
-        external
-        pure
-        returns (bytes32);
-}
+import "./interfaces/IHasher.sol";
 
 contract MerkleTreeWithHistory {
     uint256 public constant FIELD_SIZE =
@@ -15,7 +10,7 @@ contract MerkleTreeWithHistory {
     uint256 public constant ZERO_VALUE =
         21663839004416932945382355908790599225266501822907911457504978515578255421292; // = keccak256("tornado") % FIELD_SIZE
 
-    Hasher public hasher;
+    IHasher public hasher;
 
     uint32 public immutable levels;
 
@@ -32,7 +27,7 @@ contract MerkleTreeWithHistory {
         require(_treeLevels > 0, "_treeLevels should be greater than zero");
         require(_treeLevels < 32, "_treeLevels should be less than 32");
 
-        hasher = Hasher(_hasher);
+        hasher = IHasher(_hasher);
         levels = _treeLevels;
 
         bytes32 currentZero = bytes32(ZERO_VALUE);

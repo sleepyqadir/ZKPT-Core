@@ -47,29 +47,26 @@ contract DrawManager is Ownable {
     2) lottery minting period has ended organically, and lottery is still active at that point
     */
 
-    modifier isDrawActive {
-      if(draws[currentDrawId].endTime > block.timestamp) {
-        revert("Draw: previous draw not ended");
-      }
-      _;
-    }
-
-    modifier isLotteryMintingCompleted(uint256 drawId) {
-      if(draws[drawId].activeMintingPeriod > block.timestamp) {
-        revert("Draw: minting period is not ended");
-      }
-      _;
-    }
-
-    modifier isCompleted(uint256 drawId) {
-        if(draws[drawId].isCompleted){
-            revert("Draw: draw is already completed");
+    modifier isDrawActive() {
+        if (draws[currentDrawId].endTime > block.timestamp) {
+            revert("Draw: previous draw not ended");
         }
         _;
     }
 
+    modifier isLotteryMintingCompleted(uint256 drawId) {
+        if (draws[drawId].activeMintingPeriod > block.timestamp) {
+            revert("Draw: minting period is not ended");
+        }
+        _;
+    }
 
-    // functions goes here
+    modifier isCompleted(uint256 drawId) {
+        if (draws[drawId].isCompleted) {
+            revert("Draw: draw is already completed");
+        }
+        _;
+    }
 
     /*
      * @title initDraw
@@ -77,11 +74,7 @@ contract DrawManager is Ownable {
      * probably should also be onlyOwner
      * @param uint256 numMinutes: in minutes, how long mint period will last
      */
-    function initDraw(uint256 numMinutes_)
-        external
-        onlyOwner()
-        isDrawActive
-    {
+    function initDraw(uint256 numMinutes_) external onlyOwner isDrawActive {
         // basically default value
         // if set to 0, default to explicit default number of days
         if (numMinutes_ == 0) {
@@ -105,8 +98,10 @@ contract DrawManager is Ownable {
      * @title trigger draw completed will select the random user from the merkle root history using vrf function
      * @dev a function for owner to trigger lottery drawing
      */
-    function triggerDrawComplete(uint256 drawId)
-        external
+
+    // Todo add the functionality to track the current merkle tree height so no user that has deposited after it considered in this draw
+    function _triggerDrawComplete(uint256 drawId)
+        public
         isLotteryMintingCompleted(drawId)
         isCompleted(drawId)
         onlyOwner
@@ -115,40 +110,41 @@ contract DrawManager is Ownable {
         uint256 random = rand();
 
         winningTickets[drawId] = WinningTicketStruct({
-          drawId: drawId,
-          winningTicketIndex: random
+            drawId: drawId,
+            winningTicketIndex: random
         });
     }
 
-
-function vrf() internal view returns (bytes32 result) {
-    uint[1] memory bn;
-    bn[0] = block.number;
-    assembly {
-      let memPtr := mload(0x40)
-      if iszero(staticcall(not(0), 0xff, bn, 0x20, memPtr, 0x20)) {
-        invalid()
-      }
-      result := mload(memPtr)
+    function vrf() internal view returns (bytes32 result) {
+        uint256[1] memory bn;
+        bn[0] = block.number;
+        assembly {
+            let memPtr := mload(0x40)
+            if iszero(staticcall(not(0), 0xff, bn, 0x20, memPtr, 0x20)) {
+                invalid()
+            }
+            result := mload(memPtr)
+        }
     }
-  }
 
-   
-    function rand()
-    public
-    view
-    returns(uint256)
-{
-    uint256 seed = uint256(keccak256(abi.encodePacked(
-        block.timestamp + block.difficulty +
-        ((uint256(keccak256(abi.encodePacked(block.coinbase)))) / (block.timestamp)) +
-        block.gaslimit + 
-        ((uint256(keccak256(abi.encodePacked(msg.sender)))) / (block.timestamp)) +
-        block.number
-    )));
-
-    return (seed - ((seed / 1000) * 1000));
-}
+    function rand() public view returns (uint256) {
+        uint256 seed = uint256(
+            keccak256(
+                abi.encodePacked(
+                    block.timestamp +
+                        block.difficulty +
+                        ((
+                            uint256(keccak256(abi.encodePacked(block.coinbase)))
+                        ) / (block.timestamp)) +
+                        block.gaslimit +
+                        ((uint256(keccak256(abi.encodePacked(msg.sender)))) /
+                            (block.timestamp)) +
+                        block.number
+                )
+            )
+        );
+        return (seed - ((seed / 1000) * 1000));
+    }
 
     /*
      * @title triggerDepositWinnings // TASK: rename to maybe depositWinnings
@@ -158,5 +154,4 @@ function vrf() internal view returns (bytes32 result) {
     function _triggerDrawWinnings() public {
         // emit before resetting lottery so vars still valid
     }
-
 }
