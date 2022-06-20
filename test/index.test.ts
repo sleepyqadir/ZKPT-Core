@@ -9,7 +9,7 @@ import { ethers, waffle } from "hardhat";
 // eslint-disable-next-line node/no-missing-import
 import { getPoseidonFactory } from ".";
 // eslint-disable-next-line camelcase
-import { ETHZkPool__factory, Verifier__factory, ETHZkPool } from "../typechain";
+import { Pool__factory, Verifier__factory, Pool } from "../typechain";
 // eslint-disable-next-line prettier/prettier
 // eslint-disable-next-line node/no-missing-import
 import { prove, toFixedHex } from "../utils/index";
@@ -40,7 +40,7 @@ describe("ZkPoolTogether", async () => {
   // TODO change the any type to the typechain
   let merkleTreeWithHistory: any;
   let poseidonContract: Contract;
-  let ETHZkPool: ETHZkPool;
+  let Pool: Pool;
   let poseidon: any;
   before(async () => {
     poseidon = await buildPoseidon();
@@ -61,7 +61,7 @@ describe("ZkPoolTogether", async () => {
     );
     await merkleTreeWithHistory.deployed();
 
-    ETHZkPool = await new ETHZkPool__factory(signer).deploy(
+    Pool = await new Pool__factory(signer).deploy(
       verifier.address,
       ETH_AMOUNT,
       20,
@@ -107,7 +107,7 @@ describe("ZkPoolTogether", async () => {
       const [depositor, relayer, withdrawer] = await ethers.getSigners();
       const deposit = Deposit.new(poseidon);
       const commitment = deposit.commitment;
-      const depositTransaction = await ETHZkPool.connect(depositor).deposit(
+      const depositTransaction = await Pool.connect(depositor).deposit(
         commitment,
         {
           value: ETH_AMOUNT,
@@ -115,8 +115,8 @@ describe("ZkPoolTogether", async () => {
       );
       const depositReciept = await depositTransaction.wait();
 
-      const events = await ETHZkPool.queryFilter(
-        ETHZkPool.filters.Deposit(),
+      const events = await Pool.queryFilter(
+        Pool.filters.Deposit(),
         depositReciept.blockHash
       );
 
@@ -124,10 +124,10 @@ describe("ZkPoolTogether", async () => {
       deposit.leafIndex = events[0].args.leafIndex;
 
       const tree = new MerkleTree(20, "test", new PoseidonHasher(poseidon));
-      assert.equal(await tree.root(), await ETHZkPool.roots(0));
+      assert.equal(await tree.root(), await Pool.roots(0));
       await tree.insert(deposit.commitment);
-      assert.equal(tree.totalElements, await ETHZkPool.nextIndex());
-      assert.equal(await tree.root(), await ETHZkPool.roots(1));
+      assert.equal(tree.totalElements, await Pool.nextIndex());
+      assert.equal(await tree.root(), await Pool.roots(1));
 
       const nullifierHash = deposit.nullifierHash;
       const recipient = await withdrawer.getAddress();
@@ -154,7 +154,7 @@ describe("ZkPoolTogether", async () => {
       const solidityProof = await prove(witness);
 
       console.log({ witness, solidityProof });
-      const txWithdraw = await ETHZkPool.connect(relayer).withdraw(
+      const txWithdraw = await Pool.connect(relayer).withdraw(
         solidityProof,
         root,
         nullifierHash,
@@ -168,65 +168,65 @@ describe("ZkPoolTogether", async () => {
 
     it("#Start A new Draw", async () => {
       const [signer] = await ethers.getSigners();
-      const transaction = await ETHZkPool.connect(signer).initDraw(3);
+      const transaction = await Pool.connect(signer).initDraw(3);
       const reciept = transaction.wait();
-      expect(await ETHZkPool.numDraws()).equals(1);
+      expect(await Pool.numDraws()).equals(1);
     });
     it("#Should revert when non-owner try to create a new draw", async () => {
       const [signer, nonOwner] = await ethers.getSigners();
-      await expect(ETHZkPool.connect(nonOwner).initDraw(3)).to.be.revertedWith(
+      await expect(Pool.connect(nonOwner).initDraw(3)).to.be.revertedWith(
         "Ownable: caller is not the owner"
       );
     });
     it("#Should Fail to create 2 draws", async () => {
       const [signer] = await ethers.getSigners();
-      const transaction = await ETHZkPool.connect(signer).initDraw(3);
+      const transaction = await Pool.connect(signer).initDraw(3);
       const reciept = transaction.wait();
-      await expect(ETHZkPool.connect(signer).initDraw(3)).to.be.revertedWith(
+      await expect(Pool.connect(signer).initDraw(3)).to.be.revertedWith(
         "Draw: previous draw not ended"
       );
     });
     it("#Get The End and Start Time of the Draw", async () => {
       const [signer] = await ethers.getSigners();
-      const transaction = await ETHZkPool.connect(signer).initDraw(1);
+      const transaction = await Pool.connect(signer).initDraw(1);
       const reciept = transaction.wait();
 
-      const draw1 = await ETHZkPool.draws(0);
+      const draw1 = await Pool.draws(0);
       await sleep(60 * 1000);
-      const secondTransaction = await ETHZkPool.connect(signer).initDraw(3);
+      const secondTransaction = await Pool.connect(signer).initDraw(3);
       const secondReciept = await secondTransaction.wait();
-      const draw2 = await ETHZkPool.draws(1);
+      const draw2 = await Pool.draws(1);
       console.log({ draw1, draw2 });
     }).timeout(2 * 60 * 1000);
     it("#Should fail to trigger the triggerDrawComplete before 1 min", async () => {
       const [signer] = await ethers.getSigners();
-      const transaction = await ETHZkPool.connect(signer).initDraw(3);
+      const transaction = await Pool.connect(signer).initDraw(3);
       const reciept = transaction.wait();
-      const draw1 = await ETHZkPool.draws(0);
+      const draw1 = await Pool.draws(0);
       console.log(draw1);
       await expect(
-        ETHZkPool.connect(signer).triggerDrawComplete(draw1.drawId)
+        Pool.connect(signer).triggerDrawComplete(draw1.drawId)
       ).to.be.revertedWith("Draw: minting period is not ended");
     });
     it("#Should allow to trigger the triggerDrawComplete after 1 min", async () => {
       const [signer] = await ethers.getSigners();
-      const transaction = await ETHZkPool.connect(signer).initDraw(3);
+      const transaction = await Pool.connect(signer).initDraw(3);
       const reciept = transaction.wait();
-      const draw1 = await ETHZkPool.draws(0);
+      const draw1 = await Pool.draws(0);
       await sleep(60 * 1000);
-      const triggerCompleteTransaction = await ETHZkPool.connect(
+      const triggerCompleteTransaction = await Pool.connect(
         signer
       ).triggerDrawComplete(draw1.drawId);
 
       triggerCompleteTransaction.wait();
-      const drawAfterComplete = await ETHZkPool.draws(0);
+      const drawAfterComplete = await Pool.draws(0);
       // eslint-disable-next-line no-unused-expressions
       expect(drawAfterComplete.isCompleted).to.be.true;
-      expect(await (await ETHZkPool.winningTickets(0)).drawId).equals(0);
+      expect((await Pool.winningTickets(0)).drawId).equals(0);
       await expect(
-        ETHZkPool.connect(signer).triggerDrawComplete(draw1.drawId)
+        Pool.connect(signer).triggerDrawComplete(draw1.drawId)
       ).to.be.revertedWith("Draw: draw is already completed");
-      console.log({ ticket: await ETHZkPool.winningTickets(0) });
+      console.log({ ticket: await Pool.winningTickets(0) });
     }).timeout(1.5 * 60 * 1000);
   });
 });
