@@ -22,9 +22,14 @@ contract Pool is
     YieldGenerator
 {
     uint256 public immutable denomination;
+    uint256 public playersCount;
     IVerifier public immutable verifier;
 
     mapping(bytes32 => bool) public nullifierHashes;
+    mapping(bytes32 => bool) public players;
+
+    //Todo change the name of this variable
+    bytes32[] playersArray; 
 
     event Deposit(
         bytes32 indexed commitment,
@@ -58,13 +63,21 @@ contract Pool is
     @dev Deposit funds into the contract. The caller must send (for ETH) or approve (for ERC20) value equal to or `denomination` of this instance.
     @param _commitment the note commitment, which is PedersenHash(nullifier + secret)
   */
-    function deposit(bytes32 _commitment) external payable nonReentrant {
+    function deposit(bytes32 _commitment, bytes32 _nullifierHash)
+        external
+        payable
+        nonReentrant
+    {
         uint32 insertedIndex = _insert(_commitment);
 
         require(
             msg.value == denomination,
             "Please send `mixDenomination` ETH along with transaction"
         );
+
+        players[_nullifierHash] = true;
+        playersArray.push(_nullifierHash);
+        playersCount++;
 
         emit Deposit(_commitment, insertedIndex, block.timestamp);
     }
@@ -108,6 +121,8 @@ contract Pool is
         );
 
         nullifierHashes[_nullifierHash] = true;
+        players[_nullifierHash] = false;
+        playersCount--;
 
         require(
             msg.value == 0,
@@ -128,8 +143,36 @@ contract Pool is
         return nullifierHashes[_nullifierHash];
     }
 
+    function rand(uint256 bound) public view returns (uint256) {
+        uint256 seed = uint256(
+            keccak256(
+                abi.encodePacked(
+                    block.timestamp +
+                        block.difficulty +
+                        ((
+                            uint256(keccak256(abi.encodePacked(block.coinbase)))
+                        ) / (block.timestamp)) +
+                        block.gaslimit +
+                        ((uint256(keccak256(abi.encodePacked(msg.sender)))) /
+                            (block.timestamp)) +
+                        block.number
+                )
+            )
+        );
+        uint256 temp = (seed - ((seed / 1000) * 1000));
+        uint256 xmr;
+        if (bound > 10) {
+            xmr = temp / 10;
+        } else {
+            xmr = temp / 100;
+        }
+        return xmr % 100;
+    }
+
     function triggerDrawComplete() public {
-        _triggerDrawComplete(currentDrawId);
+        // Todo update the random function to directly return the nullifierHash based on its exisiting
+        uint256 random = rand(playersArray.length);
+        _triggerDrawComplete(currentDrawId,playersArray[random],random);
     }
 
     function isSpentArray(bytes32[] calldata _nullifierHashes)

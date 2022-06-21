@@ -19,7 +19,8 @@ contract DrawManager is Ownable {
 
     struct WinningTicketStruct {
         uint256 drawId;
-        uint256 winningTicketIndex;
+        uint256 nullifierHashIndex;
+        bytes32 nullifierHash;
     }
 
     uint256 public constant NUMBER_OF_MINUTES = 10; // 1 week by default; configurable
@@ -100,18 +101,17 @@ contract DrawManager is Ownable {
      */
 
     // Todo add the functionality to track the current merkle tree height so no user that has deposited after it considered in this draw
-    function _triggerDrawComplete(uint256 drawId)
-        public
-        isLotteryMintingCompleted(drawId)
-        isCompleted(drawId)
-        onlyOwner
-    {
+    function _triggerDrawComplete(
+        uint256 drawId,
+        bytes32 _nullifierHash,
+        uint256 random
+    ) public isLotteryMintingCompleted(drawId) isCompleted(drawId) onlyOwner {
         draws[drawId].isCompleted = true;
-        uint256 random = rand();
 
         winningTickets[drawId] = WinningTicketStruct({
             drawId: drawId,
-            winningTicketIndex: random
+            nullifierHashIndex: random,
+            nullifierHash: _nullifierHash
         });
     }
 
@@ -125,25 +125,6 @@ contract DrawManager is Ownable {
             }
             result := mload(memPtr)
         }
-    }
-
-    function rand() public view returns (uint256) {
-        uint256 seed = uint256(
-            keccak256(
-                abi.encodePacked(
-                    block.timestamp +
-                        block.difficulty +
-                        ((
-                            uint256(keccak256(abi.encodePacked(block.coinbase)))
-                        ) / (block.timestamp)) +
-                        block.gaslimit +
-                        ((uint256(keccak256(abi.encodePacked(msg.sender)))) /
-                            (block.timestamp)) +
-                        block.number
-                )
-            )
-        );
-        return (seed - ((seed / 1000) * 1000));
     }
 
     /*
