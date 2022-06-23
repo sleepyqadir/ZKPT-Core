@@ -17,16 +17,10 @@ template Withdraw(levels) {
     signal input pathElements[levels];
     signal input pathIndices[levels];
 
-   
-    component leafIndexNum = Bits2Num(levels);
-    for (var i = 0; i < levels; i++) {
-        leafIndexNum.in[i] <== pathIndices[i];
-    }
 
-    component nullifierHasher = Poseidon(3);
+    component nullifierHasher = Poseidon(2);
     nullifierHasher.inputs[0] <== nullifier;
-    nullifierHasher.inputs[1] <== 1;
-    nullifierHasher.inputs[2] <== leafIndexNum.out;
+    nullifierHasher.inputs[1] <== 17;
     nullifierHasher.out === nullifierHash;
 
     component commitmentHasher = Poseidon(2);
