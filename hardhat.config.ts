@@ -25,10 +25,36 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
 const config: HardhatUserConfig = {
   solidity: "0.8.4",
   networks: {
-    ropsten: {
-      url: process.env.ROPSTEN_URL || "",
+    goerli: {
+      url: process.env.GOERLI_URL || "",
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+    },
+    rinkeby: {
+      url: process.env.RINKEBY_URL || "",
+      accounts:
+        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+    },
+    testnet: {
+      url: process.env.HARMONY_TESNET_URL || `https://api.s0.b.hmny.io`,
+      accounts:
+        process.env.HARMONY_PRIVATE_KEY !== undefined
+          ? [process.env.HARMONY_PRIVATE_KEY]
+          : [],
+    },
+    devnet: {
+      url: process.env.HARMONY_DEVNET_URL || `https://api.s0.ps.hmny.io`,
+      accounts:
+        process.env.HARMONY_PRIVATE_KEY !== undefined
+          ? [process.env.HARMONY_PRIVATE_KEY]
+          : [],
+    },
+    mainnet: {
+      url: process.env.HARMONY_MAINNET_URL || `https://api.harmony.one`,
+      accounts:
+        process.env.HARMONY_PRIVATE_KEY !== undefined
+          ? [process.env.HARMONY_PRIVATE_KEY]
+          : [],
     },
   },
   gasReporter: {
