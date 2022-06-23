@@ -29,7 +29,7 @@ contract Pool is
     mapping(bytes32 => bool) public players;
 
     //Todo change the name of this variable
-    bytes32[] playersArray; 
+    bytes32[] playersArray;
 
     event Deposit(
         bytes32 indexed commitment,
@@ -75,7 +75,7 @@ contract Pool is
             "Please send `mixDenomination` ETH along with transaction"
         );
 
-        players[_nullifierHash] = true;
+        players[_commitment] = true;
         playersArray.push(_nullifierHash);
         playersCount++;
 
@@ -172,7 +172,7 @@ contract Pool is
     function triggerDrawComplete() public {
         // Todo update the random function to directly return the nullifierHash based on its exisiting
         uint256 random = rand(playersArray.length);
-        _triggerDrawComplete(currentDrawId,playersArray[random],random);
+        _triggerDrawComplete(currentDrawId, playersArray[random], random);
     }
 
     function isSpentArray(bytes32[] calldata _nullifierHashes)

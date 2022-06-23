@@ -1,7 +1,14 @@
-import { BigNumber, BigNumberish, ethers } from "ethers";
+/* eslint-disable node/no-missing-import */
+/* eslint-disable camelcase */
+import { BigNumber, BigNumberish, ethers, ContractFactory } from "ethers";
 // @ts-ignore
 import { groth16 } from "snarkjs";
 import path from "path";
+import { Deposit } from "../classes/Deposit";
+import { Pool } from "../typechain";
+import { PoseidonHasher } from "../classes/PoseidonHasher";
+import { MerkleTree } from "../src/merkleTree";
+const { poseidonContract } = require("circomlibjs");
 interface Proof {
   a: [BigNumberish, BigNumberish];
   b: [[BigNumberish, BigNumberish], [BigNumberish, BigNumberish]];
@@ -53,10 +60,7 @@ export const prove = async (witness: any): Promise<Proof> => {
     "../circuits/build/withdraw_js/withdraw.wasm"
   );
   const zkeyPath = path.join(__dirname, "../circuits/build/circuit_final.zkey");
-  console.log({ wasmPath, witness });
-
   const { proof } = await groth16.fullProve(witness, wasmPath, zkeyPath);
-  console.log(proof);
   const solProof: Proof = {
     a: [proof.pi_a[0], proof.pi_a[1]],
     b: [
@@ -67,3 +71,101 @@ export const prove = async (witness: any): Promise<Proof> => {
   };
   return solProof;
 };
+
+/**
+ * Generate merkle tree for a deposit.
+ * Download deposit events from the contract, reconstructs merkle tree, finds our deposit leaf
+ * in it and generates merkle proof
+ * @param deposit Deposit object
+ */
+export const generateMerkleProof = async (
+  deposit: Deposit,
+  contract: Pool,
+  poseidon: any
+) => {
+  console.log("Getting contract state...");
+  const eventFilter = contract.filters.Deposit();
+  const events = await contract.queryFilter(eventFilter, 0, "latest");
+
+  const tree = new MerkleTree(20, "test", new PoseidonHasher(poseidon));
+
+  const leaves = events
+    .sort((a, b) => a.args.leafIndex - b.args.leafIndex) // Sort events in chronological order
+    .map((e) => e.args.commitment);
+
+  for (const iterator of leaves) {
+    console.log({ iterator });
+    await tree.insert(iterator);
+    console.log({ number: tree.totalElements });
+  }
+
+  // Find current commitment in the tree
+  const depositEvent = events.find(
+    (e) => e.args.commitment === deposit.commitment
+  );
+
+  const leafIndex = depositEvent ? depositEvent.args.leafIndex : -1;
+
+  // Validate that our data is correct (optional)
+  const { root, path_elements, path_index } = await tree.path(leafIndex);
+  // const isValidRoot = await contract.isKnownRoot(root);
+
+  // const isSpent = await contract.isSpent(deposit.nullifierHash);
+  // assert(isValidRoot === true, "Merkle tree is corrupted");
+  // assert(isSpent === false, "The note is already spent");
+  // assert(leafIndex >= 0, "The deposit is not found in the tree");
+
+  // Compute merkle proof of our commitment
+  return { path_elements, path_index, root };
+};
+
+export const getPoseidonFactory = (nInputs: number) => {
+  const bytecode = poseidonContract.createCode(nInputs);
+  const abiJson = poseidonContract.generateABI(nInputs);
+  const abi = new ethers.utils.Interface(abiJson);
+  return new ContractFactory(abi, bytecode);
+};
+
+// async function generateSnarkProof(deposit, recipient) {
+//   // Compute merkle proof of our commitment
+//   const { root, pathElements, pathIndices } = await generateMerkleProof(
+//     deposit
+//   );
+
+//   // Prepare circuit input
+//   const input = {
+//     // Public snark inputs
+//     root: root,
+//     nullifierHash: deposit.nullifierHash,
+//     recipient: bigInt(recipient),
+//     relayer: 0,
+//     fee: 0,
+//     refund: 0,
+
+//     // Private snark inputs
+//     nullifier: deposit.nullifier,
+//     secret: deposit.secret,
+//     pathElements: pathElements,
+//     pathIndices: pathIndices,
+//   };
+
+//   console.log("Generating SNARK proof...");
+//   const proofData = await websnarkUtils.genWitnessAndProve(
+//     groth16,
+//     input,
+//     circuit,
+//     proving_key
+//   );
+//   const { proof } = websnarkUtils.toSolidityInput(proofData);
+
+//   const args = [
+//     toHex(input.root),
+//     toHex(input.nullifierHash),
+//     toHex(input.recipient, 20),
+//     toHex(input.relayer, 20),
+//     toHex(input.fee),
+//     toHex(input.refund),
+//   ];
+
+//   return { proof, args };
+// }

@@ -15,12 +15,14 @@ contract DrawManager is Ownable {
         uint256 endTime;
         uint256 activeMintingPeriod; // minting tickets is allowed. TASK: rename to "isMintingPeriodActive"?
         bool isCompleted; // winner was found; winnings were deposited.
+        bool isEnded;
     }
 
     struct WinningTicketStruct {
         uint256 drawId;
         uint256 nullifierHashIndex;
         bytes32 nullifierHash;
+        bool isSpent;
     }
 
     uint256 public constant NUMBER_OF_MINUTES = 10; // 1 week by default; configurable
@@ -69,6 +71,20 @@ contract DrawManager is Ownable {
         _;
     }
 
+    modifier isTimeEnded(uint256 drawId) {
+        if (draws[drawId].endTime > block.timestamp) {
+            revert("Draw: draw time is still remaining");
+        }
+        _;
+    }
+
+    modifier isDrawEnded(uint256 drawId) {
+        if (draws[drawId].isEnded) {
+            revert("Draw: draw is already ended");
+        }
+        _;
+    }
+
     /*
      * @title initDraw
      * @dev A function to initialize a new Draw
@@ -88,7 +104,8 @@ contract DrawManager is Ownable {
             startTime: block.timestamp,
             endTime: endTime,
             activeMintingPeriod: activeMintingPeriod,
-            isCompleted: false
+            isCompleted: false,
+            isEnded: false
         });
         numDraws++;
         currentDrawId++;
@@ -111,7 +128,8 @@ contract DrawManager is Ownable {
         winningTickets[drawId] = WinningTicketStruct({
             drawId: drawId,
             nullifierHashIndex: random,
-            nullifierHash: _nullifierHash
+            nullifierHash: _nullifierHash,
+            isSpent: false
         });
     }
 
@@ -132,7 +150,13 @@ contract DrawManager is Ownable {
      * @dev function to deposit winnings for user withdrawal pattern
      * then reset lottery params for new one to be created
      */
-    function _triggerDrawWinnings() public {
+    function _triggerDrawEnd(uint256 drawId)
+        public
+        isDrawEnded(drawId)
+        isTimeEnded(drawId)
+        onlyOwner
+    {
+        draws[drawId].isEnded = true;
         // emit before resetting lottery so vars still valid
     }
 }
