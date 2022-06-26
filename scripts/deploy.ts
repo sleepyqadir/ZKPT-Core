@@ -4,7 +4,7 @@
 import { getPoseidonFactory } from "../utils/index";
 import { ethers } from "hardhat";
 
-const ETH_AMOUNT = ethers.utils.parseEther("1");
+const ETH_AMOUNT = ethers.utils.parseEther("0.1");
 
 async function main() {
   console.log("deploying....");

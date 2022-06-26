@@ -15,12 +15,7 @@ struct Proof {
     uint256[2] c;
 }
 
-contract Pool is
-    MerkleTreeWithHistory,
-    DrawManager,
-    ReentrancyGuard,
-    YieldGenerator
-{
+contract Pool is MerkleTreeWithHistory, DrawManager, ReentrancyGuard {
     uint256 public immutable denomination;
     uint256 public playersCount;
     IVerifier public immutable verifier;
@@ -43,6 +38,8 @@ contract Pool is
         uint256 fee
     );
 
+    YieldGenerator public yieldGenerator;
+
     /**
     @param _verifier the address of SNARK verifier for this contract
     @param _denomination transfer amount for each deposit
@@ -52,11 +49,14 @@ contract Pool is
         IVerifier _verifier,
         uint256 _denomination,
         uint32 _merkleTreeHeight,
-        address _hasher
+        address _hasher,
+        address _relayer
     ) MerkleTreeWithHistory(_merkleTreeHeight, _hasher) {
         require(_denomination > 0, "denomination should be greater than 0");
         verifier = _verifier;
         denomination = _denomination;
+        yieldGenerator = new YieldGenerator();
+        addOwnership(_relayer);
     }
 
     /**
@@ -139,6 +139,53 @@ contract Pool is
         emit Withdrawal(_recipient, _nullifierHash, _relayer, _fee);
     }
 
+    function withdrawWinning(
+        Proof calldata _proof,
+        bytes32 _root,
+        bytes32 _nullifierHash,
+        address payable _recipient,
+        address payable _relayer,
+        uint256 _fee,
+        uint256 drawId
+    ) external payable nonReentrant {
+        require(_fee <= denomination, "Fee exceeds transfer value");
+        require(isKnownRoot(_root), "Cannot find your merkle root"); // Make sure to use a recent one
+        require(
+            verifier.verifyProof(
+                _proof.a,
+                _proof.b,
+                _proof.c,
+                [
+                    uint256(_root),
+                    uint256(_nullifierHash),
+                    uint256(uint160(address(_recipient))),
+                    uint256(uint160(address(_relayer))),
+                    _fee
+                ]
+            ),
+            "Invalid withdraw proof"
+        );
+
+        require(
+            msg.value == 0,
+            "Message value is supposed to be zero for ETH instance"
+        );
+
+        require(
+            winningTickets[drawId].nullifierHash == _nullifierHash,
+            "Nullifier Value does'nt match"
+        );
+
+        require(
+            winningTickets[drawId].isSpent != true,
+            "The winning ticket is already been spent"
+        );
+
+        payable(msg.sender).transfer(winningTickets[drawId].amount);
+
+        winningTickets[drawId].isSpent = true;
+    }
+
     function isSpent(bytes32 _nullifierHash) public view returns (bool) {
         return nullifierHashes[_nullifierHash];
     }
@@ -173,6 +220,11 @@ contract Pool is
         // Todo update the random function to directly return the nullifierHash based on its exisiting
         uint256 random = rand(playersArray.length);
         _triggerDrawComplete(currentDrawId, playersArray[random], random);
+    }
+
+    function triggerDrawEnd() public {
+        uint256 earned = yieldGenerator.generateYield();
+        _triggerDrawEnd(currentDrawId, earned);
     }
 
     function isSpentArray(bytes32[] calldata _nullifierHashes)

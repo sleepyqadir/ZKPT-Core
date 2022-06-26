@@ -25,7 +25,7 @@ template Withdraw(levels) {
 
     component commitmentHasher = Poseidon(2);
     commitmentHasher.inputs[0] <== nullifier;
-    commitmentHasher.inputs[1] <== 0;
+    commitmentHasher.inputs[1] <== secret;
 
     component tree = MerkleTreeInclusionProof(levels);
     tree.leaf <== commitmentHasher.out;

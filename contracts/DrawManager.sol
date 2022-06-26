@@ -1,7 +1,7 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "./Ownable.sol";
 
 import "hardhat/console.sol";
 
@@ -23,6 +23,7 @@ contract DrawManager is Ownable {
         uint256 nullifierHashIndex;
         bytes32 nullifierHash;
         bool isSpent;
+        uint256 amount;
     }
 
     uint256 public constant NUMBER_OF_MINUTES = 10; // 1 week by default; configurable
@@ -51,7 +52,7 @@ contract DrawManager is Ownable {
     */
 
     modifier isDrawActive() {
-        if (draws[currentDrawId].endTime > block.timestamp) {
+        if (draws[numDraws - 1].endTime > block.timestamp) {
             revert("Draw: previous draw not ended");
         }
         _;
@@ -129,7 +130,8 @@ contract DrawManager is Ownable {
             drawId: drawId,
             nullifierHashIndex: random,
             nullifierHash: _nullifierHash,
-            isSpent: false
+            isSpent: false,
+            amount: 0
         });
     }
 
@@ -150,13 +152,23 @@ contract DrawManager is Ownable {
      * @dev function to deposit winnings for user withdrawal pattern
      * then reset lottery params for new one to be created
      */
-    function _triggerDrawEnd(uint256 drawId)
+    function _triggerDrawEnd(uint256 drawId, uint256 amount)
         public
         isDrawEnded(drawId)
         isTimeEnded(drawId)
         onlyOwner
     {
         draws[drawId].isEnded = true;
-        // emit before resetting lottery so vars still valid
+        winningTickets[drawId].amount = amount;
     }
+
+    // function _triggerDrawEnd(uint256 drawId, uint256 amount)
+    //     public
+    //     isDrawEnded(drawId)
+    //     isTimeEnded(drawId)
+    //     onlyOwner
+    // {
+    //     draws[drawId].isEnded = true;
+    //     winningTickets[drawId].amount = amount;
+    // }
 }

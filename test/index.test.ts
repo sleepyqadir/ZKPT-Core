@@ -34,7 +34,7 @@ chai.use(solidity);
 
 // const { MERKLE_TREE_HEIGHT } = process.env;
 
-const ETH_AMOUNT = ethers.utils.parseEther("1");
+const ETH_AMOUNT = ethers.utils.parseEther("0.1");
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -211,7 +211,7 @@ describe("ZkPoolTogether", async () => {
 
       const depositReciept = await depositTransaction.wait();
 
-      expect(poolBalance).equals(ethers.utils.parseEther("1"));
+      expect(poolBalance).equals(ethers.utils.parseEther("0.1"));
 
       const depositTwo = Deposit.new(poseidon);
 
@@ -231,7 +231,7 @@ describe("ZkPoolTogether", async () => {
 
       console.log({ poolBalance });
 
-      expect(poolBalance).equals(ethers.utils.parseEther("2"));
+      expect(poolBalance).equals(ethers.utils.parseEther("0.2"));
 
       const depositThree = Deposit.new(poseidon);
 
@@ -251,7 +251,7 @@ describe("ZkPoolTogether", async () => {
 
       console.log({ poolBalance });
 
-      expect(poolBalance).equals(ethers.utils.parseEther("3"));
+      expect(poolBalance).equals(ethers.utils.parseEther("0.3"));
 
       // TODO migrate events test in seperate test
       // const events = await Pool.queryFilter(
@@ -281,7 +281,8 @@ describe("ZkPoolTogether", async () => {
         recipient,
         relayer: await relayer.getAddress(),
         fee,
-        secret: 1,
+        // Private
+        secret: BigNumber.from(depositThree.secret).toBigInt(),
         // Private
         nullifier: BigNumber.from(depositThree.nullifier).toBigInt(),
         pathElements: pathElementsThree,
@@ -304,69 +305,69 @@ describe("ZkPoolTogether", async () => {
 
       recipientBalance = await provider.getBalance(recipient);
 
-      expect(recipientBalance).equals(ethers.utils.parseEther("10002"));
+      expect(recipientBalance).equals(ethers.utils.parseEther("1000.2"));
     }).timeout(500000);
 
     // TODO add the test case for the Nullifier spent case
 
-    // it("#Start A new Draw", async () => {
-    //   const [signer] = await ethers.getSigners();
-    //   const transaction = await Pool.connect(signer).initDraw(3);
-    //   const reciept = transaction.wait();
-    //   expect(await Pool.numDraws()).equals(1);
-    // });
-    // it("#Should revert when non-owner try to create a new draw", async () => {
-    //   const [signer, nonOwner] = await ethers.getSigners();
-    //   await expect(Pool.connect(nonOwner).initDraw(3)).to.be.revertedWith(
-    //     "Ownable: caller is not the owner"
-    //   );
-    // });
-    // it("#Should Fail to create 2 draws", async () => {
-    //   const [signer] = await ethers.getSigners();
-    //   const transaction = await Pool.connect(signer).initDraw(3);
-    //   const reciept = transaction.wait();
-    //   await expect(Pool.connect(signer).initDraw(3)).to.be.revertedWith(
-    //     "Draw: previous draw not ended"
-    //   );
-    // });
-    // it("#Get The End and Start Time of the Draw", async () => {
-    //   const [signer] = await ethers.getSigners();
-    //   const transaction = await Pool.connect(signer).initDraw(1);
-    //   const reciept = transaction.wait();
+    it("#Start A new Draw", async () => {
+      const [signer] = await ethers.getSigners();
+      const transaction = await ZKPool.connect(signer).initDraw(3);
+      const reciept = transaction.wait();
+      expect(await ZKPool.numDraws()).equals(1);
+    });
+    it("#Should revert when non-owner try to create a new draw", async () => {
+      const [signer, nonOwner] = await ethers.getSigners();
+      await expect(ZKPool.connect(nonOwner).initDraw(3)).to.be.revertedWith(
+        "Ownable: caller is not the owner"
+      );
+    });
+    it("#Should Fail to create 2 draws", async () => {
+      const [signer] = await ethers.getSigners();
+      const transaction = await ZKPool.connect(signer).initDraw(3);
+      const reciept = transaction.wait();
+      await expect(ZKPool.connect(signer).initDraw(3)).to.be.revertedWith(
+        "Draw: previous draw not ended"
+      );
+    });
+    it("#Get The End and Start Time of the Draw", async () => {
+      const [signer] = await ethers.getSigners();
+      const transaction = await ZKPool.connect(signer).initDraw(1);
+      const reciept = transaction.wait();
 
-    //   const draw1 = await Pool.draws(0);
-    //   await sleep(60 * 1000);
-    //   const secondTransaction = await Pool.connect(signer).initDraw(3);
-    //   const secondReciept = await secondTransaction.wait();
-    //   const draw2 = await Pool.draws(1);
-    // }).timeout(2 * 60 * 1000);
-    // it("#Should fail to trigger the triggerDrawComplete before 1 min", async () => {
-    //   const [signer] = await ethers.getSigners();
-    //   const transaction = await Pool.connect(signer).initDraw(3);
-    //   const reciept = transaction.wait();
-    //   const draw1 = await Pool.draws(0);
-    //   await expect(
-    //     Pool.connect(signer).triggerDrawComplete()
-    //   ).to.be.revertedWith("Draw: minting period is not ended");
-    // });
-    // it("#Should allow to trigger the triggerDrawComplete after 1 min", async () => {
-    //   const [signer] = await ethers.getSigners();
-    //   const transaction = await Pool.connect(signer).initDraw(3);
-    //   const reciept = transaction.wait();
-    //   const draw1 = await Pool.draws(0);
-    //   await sleep(60 * 1000);
-    //   const triggerCompleteTransaction = await Pool.connect(
-    //     signer
-    //   ).triggerDrawComplete();
+      const draw1 = await ZKPool.draws(0);
+      await sleep(60 * 1000);
+      const secondTransaction = await ZKPool.connect(signer).initDraw(3);
+      const secondReciept = await secondTransaction.wait();
+      const draw2 = await ZKPool.draws(1);
+    }).timeout(2 * 60 * 1000);
+    it("#Should fail to trigger the triggerDrawComplete before 1 min", async () => {
+      const [signer] = await ethers.getSigners();
+      const transaction = await ZKPool.connect(signer).initDraw(3);
+      const reciept = transaction.wait();
+      const draw1 = await ZKPool.draws(0);
+      await expect(
+        ZKPool.connect(signer).triggerDrawComplete()
+      ).to.be.revertedWith("Draw: minting period is not ended");
+    });
+    it("#Should allow to trigger the triggerDrawComplete after 1 min", async () => {
+      const [signer] = await ethers.getSigners();
+      const transaction = await ZKPool.connect(signer).initDraw(3);
+      const reciept = transaction.wait();
+      const draw1 = await ZKPool.draws(0);
+      await sleep(60 * 1000);
+      const triggerCompleteTransaction = await ZKPool.connect(
+        signer
+      ).triggerDrawComplete();
 
-    //   triggerCompleteTransaction.wait();
-    //   const drawAfterComplete = await Pool.draws(0);
-    //   // eslint-disable-next-line no-unused-expressions
-    //   expect(drawAfterComplete.isCompleted).to.be.true;
-    //   expect((await Pool.winningTickets(0)).drawId).equals(0);
-    //   await expect(
-    //     Pool.connect(signer).triggerDrawComplete()
-    //   ).to.be.revertedWith("Draw: draw is already completed");
-    // }).timeout(1.5 * 60 * 1000);
+      triggerCompleteTransaction.wait();
+      const drawAfterComplete = await ZKPool.draws(0);
+      // eslint-disable-next-line no-unused-expressions
+      expect(drawAfterComplete.isCompleted).to.be.true;
+      expect((await ZKPool.winningTickets(0)).drawId).equals(0);
+      await expect(
+        ZKPool.connect(signer).triggerDrawComplete()
+      ).to.be.revertedWith("Draw: draw is already completed");
+    }).timeout(1.5 * 60 * 1000);
   });
 });

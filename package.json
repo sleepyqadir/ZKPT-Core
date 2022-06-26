@@ -9,8 +9,7 @@
     "fix:circuits:contracts": "node scripts/bump-solidity.ts",
     "circuits": "npm run build:circuits:compile && npm run fix:circuits:contracts",
     "export:zkeys": "cp circuits/circuit_final.zkey web/zkeys && cp circuits/verification_key.json web/zkeys && cp circuits/circuit_js/circuit.wasm web/zkeys && cp circuits/circuit_js/witness_calculator.js web/src",
-    "export:types": "cp -r typechain frontend/contracts",
-    "deploy:rinkeby": "npx hardhat run --network rinkeby scripts/deploy.ts"
+    "export:types": "cp -r typechain frontend/contracts"
   },
   "repository": {
     "type": "git",
