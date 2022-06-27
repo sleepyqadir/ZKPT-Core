@@ -32,7 +32,12 @@ async function main() {
 
   await ZKPoolInstance.deployed();
 
-  console.log("Greeter deployed to:", ZKPoolInstance.address);
+  console.log(
+    "Yield deployed at =======>",
+    await ZKPoolInstance.yieldGenerator()
+  );
+
+  console.log("ZKPOOL deployed to:", ZKPoolInstance.address);
 }
 
 main()

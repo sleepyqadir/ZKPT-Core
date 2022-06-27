@@ -315,6 +315,7 @@ describe("ZkPoolTogether", async () => {
           value: ETH_AMOUNT,
         }
       );
+
       const depositReciept = await depositTransaction.wait();
 
       const transaction = await ZKPool.connect(signer).initDraw();
@@ -326,6 +327,7 @@ describe("ZkPoolTogether", async () => {
         to: address,
         value: ethers.utils.parseEther("1.0"), // Sends exactly 1.0 ether
       });
+      
       await ethers.provider.send("evm_increaseTime", [300]);
       await ethers.provider.send("evm_mine", []);
 
