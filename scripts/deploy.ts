@@ -26,7 +26,8 @@ async function main() {
     verifierInstance.address,
     ETH_AMOUNT,
     20,
-    poseidonContract.address
+    poseidonContract.address,
+    process.env.RELAYER_ADDRESS || ""
   );
 
   await ZKPoolInstance.deployed();

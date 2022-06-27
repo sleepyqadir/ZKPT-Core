@@ -226,7 +226,6 @@ contract Pool is MerkleTreeWithHistory, DrawManager, ReentrancyGuard {
     function triggerDrawEnd() public {
         uint256 earned = yieldGenerator.generateYield();
         uint256 random = rand(players.length);
-        // TODO earned amount to check it is working
         _triggerDrawEnd(currentDrawId, earned, players[random], random);
     }
 }
