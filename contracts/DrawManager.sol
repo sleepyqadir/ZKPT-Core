@@ -3,34 +3,26 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "./Ownable.sol";
 
-import "hardhat/console.sol";
-
 contract DrawManager is Ownable {
     // State Variables
     struct DrawStruct {
         uint256 drawId;
         uint256 startTime;
         uint256 endTime;
-        bool isCompleted; // winner was found; winnings were deposited.
-    }
-
-    struct WinningTicketStruct {
-        uint256 drawId;
+        bool isCompleted;
         uint256 nullifierHashIndex;
         bytes32 nullifierHash;
         bool isSpent;
         uint256 amount;
     }
 
-    uint256 public constant NUMBER_OF_MINUTES = 10; // 1 week by default; configurable
+    uint256 public constant NUMBER_OF_MINUTES = 5;
 
     uint256 public currentDrawId = 0;
 
     uint256 public numDraws = 0;
 
-    mapping(uint256 => WinningTicketStruct) public winningTickets; // key is DrawId
-
-    mapping(uint256 => DrawStruct) public draws; // key is lotteryId
+    DrawStruct[] public draws;
 
     // Events goes here
     event LogNewLottery(address creator, uint256 startTime, uint256 endTime); // emit when lottery created
@@ -39,8 +31,10 @@ contract DrawManager is Ownable {
 
     // modifiers
     modifier isDrawActive() {
-        if (draws[numDraws].endTime > block.timestamp) {
-            revert("Draw: previous draw not ended");
+        if (currentDrawId != 0) {
+            if (draws[currentDrawId - 1].endTime > block.timestamp) {
+                revert("Draw: previous draw not ended");
+            }
         }
         _;
     }
@@ -65,19 +59,22 @@ contract DrawManager is Ownable {
      * probably should also be onlyOwner
      * @param uint256 numMinutes: in minutes, how long mint period will last
      */
-    function initDraw(uint256 numMinutes_) external onlyOwner isDrawActive {
+    function initDraw() external onlyOwner isDrawActive {
         // basically default value
         // if set to 0, default to explicit default number of days
-        if (numMinutes_ == 0) {
-            numMinutes_ = NUMBER_OF_MINUTES;
-        }
-        uint256 endTime = block.timestamp + (numMinutes_ * 1 minutes);
-        draws[currentDrawId] = DrawStruct({
-            drawId: currentDrawId,
-            startTime: block.timestamp,
-            endTime: endTime,
-            isCompleted: false
-        });
+        uint256 endTime = block.timestamp + (NUMBER_OF_MINUTES * 1 minutes);
+        draws.push(
+            DrawStruct({
+                drawId: currentDrawId,
+                startTime: block.timestamp,
+                endTime: endTime,
+                isCompleted: false,
+                isSpent: false,
+                amount: 0,
+                nullifierHash: "",
+                nullifierHashIndex: 0
+            })
+        );
         numDraws++;
         currentDrawId++;
         emit LogNewLottery(msg.sender, block.timestamp, endTime);
@@ -95,15 +92,12 @@ contract DrawManager is Ownable {
         uint256 random
     ) public isCompleted(drawId) isTimeEnded(drawId) onlyOwner {
         draws[drawId].isCompleted = true;
+        draws[drawId].nullifierHashIndex = random;
+        draws[drawId].nullifierHash = _nullifierHash;
+        draws[drawId].amount = amount;
+    }
 
-        winningTickets[drawId] = WinningTicketStruct({
-            drawId: drawId,
-            nullifierHashIndex: random,
-            nullifierHash: _nullifierHash,
-            isSpent: false,
-            amount: amount
-        });
-
-        draws[drawId].isCompleted = true;
+    function getDraws() external view returns (DrawStruct[] memory) {
+        return draws;
     }
 }

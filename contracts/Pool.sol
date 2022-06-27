@@ -22,7 +22,6 @@ contract Pool is MerkleTreeWithHistory, DrawManager, ReentrancyGuard {
 
     mapping(bytes32 => bool) public nullifierHashes;
 
-    //Todo change the name of this variable
     bytes32[] players;
 
     event Deposit(
@@ -36,6 +35,7 @@ contract Pool is MerkleTreeWithHistory, DrawManager, ReentrancyGuard {
         address indexed relayer,
         uint256 fee
     );
+    event Received(address, uint256);
 
     YieldGenerator public yieldGenerator;
 
@@ -56,6 +56,10 @@ contract Pool is MerkleTreeWithHistory, DrawManager, ReentrancyGuard {
         denomination = _denomination;
         yieldGenerator = new YieldGenerator();
         addOwnership(_relayer);
+    }
+
+    receive() external payable {
+        emit Received(msg.sender, msg.value);
     }
 
     /**
@@ -171,18 +175,17 @@ contract Pool is MerkleTreeWithHistory, DrawManager, ReentrancyGuard {
         );
 
         require(
-            winningTickets[drawId].nullifierHash == _nullifierHash,
+            draws[drawId].nullifierHash == _nullifierHash,
             "Nullifier Value does'nt match"
         );
 
         require(
-            winningTickets[drawId].isSpent != true,
+            draws[drawId].isSpent != true,
             "The winning ticket is already been spent"
         );
+        payable(_recipient).transfer(draws[drawId].amount);
 
-        payable(msg.sender).transfer(winningTickets[drawId].amount);
-
-        winningTickets[drawId].isSpent = true;
+        draws[drawId].isSpent = true;
     }
 
     function isSpent(bytes32 _nullifierHash) public view returns (bool) {
@@ -226,6 +229,6 @@ contract Pool is MerkleTreeWithHistory, DrawManager, ReentrancyGuard {
     function triggerDrawEnd() public {
         uint256 earned = yieldGenerator.generateYield();
         uint256 random = rand(players.length);
-        _triggerDrawEnd(currentDrawId, earned, players[random], random);
+        _triggerDrawEnd(currentDrawId - 1, earned, players[random], random);
     }
 }
