@@ -15,26 +15,6 @@ interface Proof {
   c: [BigNumberish, BigNumberish];
 }
 
-// export const unstringifyBigInts = (o) => {
-//   if (typeof o == "string" && /^[0-9]+$/.test(o)) {
-//     return bigInt(o);
-//   } else if (typeof o == "string" && /^0x[0-9a-fA-F]+$/.test(o)) {
-//     return bigInt(o);
-//   } else if (Array.isArray(o)) {
-//     return o.map(unstringifyBigInts);
-//   } else if (typeof o == "object") {
-//     if (o === null) return null;
-//     const res = {};
-//     const keys = Object.keys(o);
-//     keys.forEach((k) => {
-//       res[k] = unstringifyBigInts(o[k]);
-//     });
-//     return res;
-//   } else {
-//     return o;
-//   }
-// };
-
 export const poseidonHash = (poseidon: any, inputs: BigNumberish[]): string => {
   const hash = poseidon(inputs.map((x) => BigNumber.from(x).toBigInt()));
   // Make the number within the field size
@@ -125,4 +105,3 @@ export const getPoseidonFactory = (nInputs: number) => {
   const abi = new ethers.utils.Interface(abiJson);
   return new ContractFactory(abi, bytecode);
 };
-

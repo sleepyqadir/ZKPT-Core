@@ -6,16 +6,12 @@ import "./Ownable.sol";
 import "hardhat/console.sol";
 
 contract DrawManager is Ownable {
-    using Math for uint256;
-
     // State Variables
     struct DrawStruct {
         uint256 drawId;
         uint256 startTime;
         uint256 endTime;
-        uint256 activeMintingPeriod; // minting tickets is allowed. TASK: rename to "isMintingPeriodActive"?
         bool isCompleted; // winner was found; winnings were deposited.
-        bool isEnded;
     }
 
     struct WinningTicketStruct {
@@ -32,8 +28,6 @@ contract DrawManager is Ownable {
 
     uint256 public numDraws = 0;
 
-    mapping(uint256 => uint256) public prizes; // key is DrawId
-
     mapping(uint256 => WinningTicketStruct) public winningTickets; // key is DrawId
 
     mapping(uint256 => DrawStruct) public draws; // key is lotteryId
@@ -44,23 +38,9 @@ contract DrawManager is Ownable {
     // errors
 
     // modifiers
-
-    /* @dev check that minting period is completed, and lottery drawing can begin
-    either:
-    1) minting period manually ended, ie lottery is inactive. Then drawing can begin immediately.
-    2) lottery minting period has ended organically, and lottery is still active at that point
-    */
-
     modifier isDrawActive() {
-        if (draws[numDraws - 1].endTime > block.timestamp) {
+        if (draws[numDraws].endTime > block.timestamp) {
             revert("Draw: previous draw not ended");
-        }
-        _;
-    }
-
-    modifier isLotteryMintingCompleted(uint256 drawId) {
-        if (draws[drawId].activeMintingPeriod > block.timestamp) {
-            revert("Draw: minting period is not ended");
         }
         _;
     }
@@ -79,13 +59,6 @@ contract DrawManager is Ownable {
         _;
     }
 
-    modifier isDrawEnded(uint256 drawId) {
-        if (draws[drawId].isEnded) {
-            revert("Draw: draw is already ended");
-        }
-        _;
-    }
-
     /*
      * @title initDraw
      * @dev A function to initialize a new Draw
@@ -99,14 +72,11 @@ contract DrawManager is Ownable {
             numMinutes_ = NUMBER_OF_MINUTES;
         }
         uint256 endTime = block.timestamp + (numMinutes_ * 1 minutes);
-        uint256 activeMintingPeriod = block.timestamp + 1 minutes;
         draws[currentDrawId] = DrawStruct({
             drawId: currentDrawId,
             startTime: block.timestamp,
             endTime: endTime,
-            activeMintingPeriod: activeMintingPeriod,
-            isCompleted: false,
-            isEnded: false
+            isCompleted: false
         });
         numDraws++;
         currentDrawId++;
@@ -114,16 +84,16 @@ contract DrawManager is Ownable {
     }
 
     /*
-     * @title trigger draw completed will select the random user from the merkle root history using vrf function
-     * @dev a function for owner to trigger lottery drawing
+     * @title triggerDepositWinnings // TASK: rename to maybe depositWinnings
+     * @dev function to deposit winnings for user withdrawal pattern
+     * then reset lottery params for new one to be created
      */
-
-    // Todo add the functionality to track the current merkle tree height so no user that has deposited after it considered in this draw
-    function _triggerDrawComplete(
+    function _triggerDrawEnd(
         uint256 drawId,
+        uint256 amount,
         bytes32 _nullifierHash,
         uint256 random
-    ) public isLotteryMintingCompleted(drawId) isCompleted(drawId) onlyOwner {
+    ) public isCompleted(drawId) isTimeEnded(drawId) onlyOwner {
         draws[drawId].isCompleted = true;
 
         winningTickets[drawId] = WinningTicketStruct({
@@ -131,44 +101,9 @@ contract DrawManager is Ownable {
             nullifierHashIndex: random,
             nullifierHash: _nullifierHash,
             isSpent: false,
-            amount: 0
+            amount: amount
         });
-    }
 
-    function vrf() internal view returns (bytes32 result) {
-        uint256[1] memory bn;
-        bn[0] = block.number;
-        assembly {
-            let memPtr := mload(0x40)
-            if iszero(staticcall(not(0), 0xff, bn, 0x20, memPtr, 0x20)) {
-                invalid()
-            }
-            result := mload(memPtr)
-        }
+        draws[drawId].isCompleted = true;
     }
-
-    /*
-     * @title triggerDepositWinnings // TASK: rename to maybe depositWinnings
-     * @dev function to deposit winnings for user withdrawal pattern
-     * then reset lottery params for new one to be created
-     */
-    function _triggerDrawEnd(uint256 drawId, uint256 amount)
-        public
-        isDrawEnded(drawId)
-        isTimeEnded(drawId)
-        onlyOwner
-    {
-        draws[drawId].isEnded = true;
-        winningTickets[drawId].amount = amount;
-    }
-
-    // function _triggerDrawEnd(uint256 drawId, uint256 amount)
-    //     public
-    //     isDrawEnded(drawId)
-    //     isTimeEnded(drawId)
-    //     onlyOwner
-    // {
-    //     draws[drawId].isEnded = true;
-    //     winningTickets[drawId].amount = amount;
-    // }
 }

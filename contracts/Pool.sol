@@ -21,10 +21,9 @@ contract Pool is MerkleTreeWithHistory, DrawManager, ReentrancyGuard {
     IVerifier public immutable verifier;
 
     mapping(bytes32 => bool) public nullifierHashes;
-    mapping(bytes32 => bool) public players;
 
     //Todo change the name of this variable
-    bytes32[] playersArray;
+    bytes32[] players;
 
     event Deposit(
         bytes32 indexed commitment,
@@ -75,8 +74,7 @@ contract Pool is MerkleTreeWithHistory, DrawManager, ReentrancyGuard {
             "Please send `mixDenomination` ETH along with transaction"
         );
 
-        players[_commitment] = true;
-        playersArray.push(_nullifierHash);
+        players.push(_nullifierHash);
         playersCount++;
 
         emit Deposit(_commitment, insertedIndex, block.timestamp);
@@ -121,7 +119,8 @@ contract Pool is MerkleTreeWithHistory, DrawManager, ReentrancyGuard {
         );
 
         nullifierHashes[_nullifierHash] = true;
-        players[_nullifierHash] = false;
+
+        removeElement(_nullifierHash);
         playersCount--;
 
         require(
@@ -190,6 +189,20 @@ contract Pool is MerkleTreeWithHistory, DrawManager, ReentrancyGuard {
         return nullifierHashes[_nullifierHash];
     }
 
+    function removeElement(bytes32 _element) public {
+        for (uint256 i; i < players.length; i++) {
+            if (players[i] == _element) {
+                players[i] = players[players.length - 1];
+                players.pop();
+                break;
+            }
+        }
+    }
+
+    function getPlayers() external view returns (bytes32[] memory) {
+        return players;
+    }
+
     function rand(uint256 bound) public view returns (uint256) {
         uint256 seed = uint256(
             keccak256(
@@ -206,37 +219,14 @@ contract Pool is MerkleTreeWithHistory, DrawManager, ReentrancyGuard {
                 )
             )
         );
-        uint256 temp = (seed - ((seed / 1000) * 1000));
-        uint256 xmr;
-        if (bound > 10) {
-            xmr = temp / 10;
-        } else {
-            xmr = temp / 100;
-        }
-        return xmr % 100;
-    }
-
-    function triggerDrawComplete() public {
-        // Todo update the random function to directly return the nullifierHash based on its exisiting
-        uint256 random = rand(playersArray.length);
-        _triggerDrawComplete(currentDrawId, playersArray[random], random);
+        uint256 xmr = (seed - ((seed / 1000) * 1000));
+        return xmr % bound;
     }
 
     function triggerDrawEnd() public {
         uint256 earned = yieldGenerator.generateYield();
-        _triggerDrawEnd(currentDrawId, earned);
-    }
-
-    function isSpentArray(bytes32[] calldata _nullifierHashes)
-        external
-        view
-        returns (bool[] memory spent)
-    {
-        spent = new bool[](_nullifierHashes.length);
-        for (uint256 i = 0; i < _nullifierHashes.length; i++) {
-            if (isSpent(_nullifierHashes[i])) {
-                spent[i] = true;
-            }
-        }
+        uint256 random = rand(players.length);
+        // TODO earned amount to check it is working
+        _triggerDrawEnd(currentDrawId, earned, players[random], random);
     }
 }

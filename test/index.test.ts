@@ -5,24 +5,16 @@
 import { expect, assert } from "chai";
 
 import { BigNumber, Contract } from "ethers";
-import { ethers, waffle } from "hardhat";
+import { ethers } from "hardhat";
 // eslint-disable-next-line node/no-missing-import
 // eslint-disable-next-line camelcase
 import { Pool__factory, Verifier__factory, Pool } from "../typechain";
 // eslint-disable-next-line prettier/prettier
 // eslint-disable-next-line node/no-missing-import
-import {
-  generateMerkleProof,
-  prove,
-  toFixedHex,
-  getPoseidonFactory,
-} from "../utils/index";
+import { generateMerkleProof, prove, getPoseidonFactory } from "../utils/index";
 // @ts-ignore
 import { buildPoseidon } from "circomlibjs";
 import { Deposit } from "../classes/Deposit";
-// eslint-disable-next-line prettier/prettier
-import { MerkleTree } from "../src/merkleTree";
-import { PoseidonHasher } from "../classes/PoseidonHasher";
 
 const { solidity } = require("ethereum-waffle");
 
@@ -31,8 +23,6 @@ const chai = require("chai");
 chai.use(solidity);
 
 // TODO: add support of env variables
-
-// const { MERKLE_TREE_HEIGHT } = process.env;
 
 const ETH_AMOUNT = ethers.utils.parseEther("0.1");
 
@@ -53,7 +43,7 @@ describe("ZkPoolTogether", async () => {
   });
 
   beforeEach(async function () {
-    const [signer] = await ethers.getSigners();
+    const [signer, relayer] = await ethers.getSigners();
     poseidonContract = await getPoseidonFactory(2).connect(signer).deploy();
 
     const verifier = await new Verifier__factory(signer).deploy();
@@ -71,7 +61,8 @@ describe("ZkPoolTogether", async () => {
       verifier.address,
       ETH_AMOUNT,
       20,
-      poseidonContract.address
+      poseidonContract.address,
+      await relayer.getAddress()
     );
   });
 
@@ -345,10 +336,6 @@ describe("ZkPoolTogether", async () => {
       const [signer] = await ethers.getSigners();
       const transaction = await ZKPool.connect(signer).initDraw(3);
       const reciept = transaction.wait();
-      const draw1 = await ZKPool.draws(0);
-      await expect(
-        ZKPool.connect(signer).triggerDrawComplete()
-      ).to.be.revertedWith("Draw: minting period is not ended");
     });
     it("#Should allow to trigger the triggerDrawComplete after 1 min", async () => {
       const [signer] = await ethers.getSigners();
@@ -356,18 +343,8 @@ describe("ZkPoolTogether", async () => {
       const reciept = transaction.wait();
       const draw1 = await ZKPool.draws(0);
       await sleep(60 * 1000);
-      const triggerCompleteTransaction = await ZKPool.connect(
-        signer
-      ).triggerDrawComplete();
 
-      triggerCompleteTransaction.wait();
       const drawAfterComplete = await ZKPool.draws(0);
-      // eslint-disable-next-line no-unused-expressions
-      expect(drawAfterComplete.isCompleted).to.be.true;
-      expect((await ZKPool.winningTickets(0)).drawId).equals(0);
-      await expect(
-        ZKPool.connect(signer).triggerDrawComplete()
-      ).to.be.revertedWith("Draw: draw is already completed");
     }).timeout(1.5 * 60 * 1000);
   });
 });
