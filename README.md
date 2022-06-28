@@ -120,3 +120,92 @@ As mentioned earlier, we implemented the proposed design of
 ## Out of Scope:
 
 [to be added]
+
+## Foldrer Structure
+
+``` bash
+
+.
+├── circuits
+│   ├── build
+│   │   ├── circuit_0000.zkey
+│   │   ├── circuit_final.zkey
+│   │   ├── verification_key.json
+│   │   ├── withdraw_js
+│   │   │   ├── generate_witness.js
+│   │   │   ├── withdraw.wasm
+│   │   │   └── witness_calculator.js
+│   │   ├── withdraw.r1cs
+│   │   └── withdraw.sym
+│   ├── merkleTree.circom
+│   ├── powersOfTau28_hez_final_20.ptau
+│   └── withdraw.circom
+├── classes
+│   ├── Deposit.ts
+│   ├── dist
+│   │   └── PoseidonHasher.js
+│   └── PoseidonHasher.ts
+├── contracts
+│   ├── DrawManager.sol
+│   ├── interfaces
+│   │   ├── IHasher.sol
+│   │   └── IVerifier.sol
+│   ├── MerkleTreeWithHistory.sol
+│   ├── mocks
+│   │   └── MerkleTreeWithHistoryMock.sol
+│   ├── Ownable.sol
+│   ├── Pool.sol
+│   ├── verifier.sol
+│   └── YieldGenerator.sol
+├── hardhat.config.ts
+├── nethereum-gen.settings
+├── package.json
+├── package-lock.json
+├── README.md
+├── scripts
+│   ├── bump-solidity.ts
+│   ├── compile-circuit.sh
+│   └── deploy.ts
+├── src
+│   └── merkleTree.ts
+├── tasks
+│   ├── dist
+│   │   └── index.js
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── rollup.config.js
+│   ├── src
+│   │   └── index.ts
+│   ├── tsconfig.json
+│   └── yarn.lock
+├── test
+│   └── index.test.ts
+├── tsconfig.json
+├── typechain
+│   ├── common.d.ts
+│   ├── DrawManager.d.ts
+│   ├── factories
+│   │   ├── DrawManager__factory.ts
+│   │   ├── IHasher__factory.ts
+│   │   ├── IVerifier__factory.ts
+│   │   ├── MerkleTreeWithHistory__factory.ts
+│   │   ├── MerkleTreeWithHistoryMock__factory.ts
+│   │   ├── Ownable__factory.ts
+│   │   ├── Pool__factory.ts
+│   │   ├── Verifier__factory.ts
+│   │   └── YieldGenerator__factory.ts
+│   ├── hardhat.d.ts
+│   ├── IHasher.d.ts
+│   ├── index.ts
+│   ├── IVerifier.d.ts
+│   ├── MerkleTreeWithHistory.d.ts
+│   ├── MerkleTreeWithHistoryMock.d.ts
+│   ├── Ownable.d.ts
+│   ├── Pool.d.ts
+│   ├── Verifier.d.ts
+│   └── YieldGenerator.d.ts
+├── utils
+│   └── index.ts
+└── yarn.lock
+
+```
