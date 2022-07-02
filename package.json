@@ -4,7 +4,7 @@
   "description": "ZkPoolTogether is the zkp version of PoolTogether; usage of zero-knowledge proof systems will protect users' identity, and the amount users are depositing.",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build:circuits:compile": "chmod u+x scripts/compile-circuit.sh && ./scripts/compile-circuit.sh",
+    "build:circuits:compile": "chmod u+x scripts/compile-withdraw-circuit.sh && ./scripts/compile-withdraw-circuit.sh && chmod u+x scripts/compile-winning-circuit.sh && ./scripts/compile-winning-circuit.sh",
     "build:contracts:compile": "npx hardhat compile",
     "fix:circuits:contracts": "node scripts/bump-solidity.ts",
     "circuits": "npm run build:circuits:compile && npm run fix:circuits:contracts",

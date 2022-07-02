@@ -17,10 +17,15 @@ contract MerkleTreeWithHistory {
     // the following variables are made public for easier testing and debugging and
     // are not supposed to be accessed in regular code
     bytes32[] public filledSubtrees;
+    
     bytes32[] public zeros;
+    
     uint32 public currentRootIndex = 0;
+    
     uint32 public nextIndex = 0;
+    
     uint32 public constant ROOT_HISTORY_SIZE = 100;
+
     bytes32[ROOT_HISTORY_SIZE] public roots;
 
     constructor(uint32 _treeLevels, address _hasher) {

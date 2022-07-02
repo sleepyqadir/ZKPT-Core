@@ -37,10 +37,18 @@ export const toFixedHex = (number: any, length = 32) => {
 export const prove = async (witness: any): Promise<Proof> => {
   const wasmPath = path.join(
     __dirname,
-    "../circuits/build/withdraw_js/withdraw.wasm"
+    "../circuits/build/Withdraw/withdraw_js/withdraw.wasm"
   );
-  const zkeyPath = path.join(__dirname, "../circuits/build/circuit_final.zkey");
-  const { proof } = await groth16.fullProve(witness, wasmPath, zkeyPath);
+  const zkeyPath = path.join(
+    __dirname,
+    "../circuits/build/Withdraw/circuit_final.zkey"
+  );
+  const { proof, publicSignals } = await groth16.fullProve(
+    witness,
+    wasmPath,
+    zkeyPath
+  );
+  console.log({ publicSignals });
   const solProof: Proof = {
     a: [proof.pi_a[0], proof.pi_a[1]],
     b: [
@@ -59,7 +67,7 @@ export const prove = async (witness: any): Promise<Proof> => {
  * @param deposit Deposit object
  */
 export const generateMerkleProof = async (
-  deposit: Deposit,
+  commitment: string,
   contract: Pool,
   poseidon: any
 ) => {
@@ -80,9 +88,7 @@ export const generateMerkleProof = async (
   }
 
   // Find current commitment in the tree
-  const depositEvent = events.find(
-    (e) => e.args.commitment === deposit.commitment
-  );
+  const depositEvent = events.find((e) => e.args.commitment === commitment);
 
   const leafIndex = depositEvent ? depositEvent.args.leafIndex : -1;
 

@@ -8,13 +8,24 @@ import { BigNumber, Contract } from "ethers";
 import { ethers } from "hardhat";
 // eslint-disable-next-line node/no-missing-import
 // eslint-disable-next-line camelcase
-import { Pool__factory, Verifier__factory, Pool } from "../typechain";
+import {
+  Pool__factory,
+  Pool,
+  WinningVerifier__factory,
+  WithdrawVerifier__factory,
+} from "../typechain";
 // eslint-disable-next-line prettier/prettier
 // eslint-disable-next-line node/no-missing-import
-import { generateMerkleProof, prove, getPoseidonFactory } from "../utils/index";
+import {
+  generateMerkleProof,
+  prove,
+  getPoseidonFactory,
+  poseidonHash,
+} from "../utils/index";
 // @ts-ignore
 import { buildPoseidon } from "circomlibjs";
 import { Deposit } from "../classes/Deposit";
+import { WithdrawVerifier } from "../typechain/WithdrawVerifier";
 
 const { solidity } = require("ethereum-waffle");
 
@@ -37,6 +48,7 @@ describe("ZkPoolTogether", async () => {
   let ZKPool: Pool;
   let poseidon: any;
   let provider: any;
+  let withdrawVerifier: WithdrawVerifier;
   before(async () => {
     poseidon = await buildPoseidon();
     provider = ethers.provider;
@@ -46,7 +58,9 @@ describe("ZkPoolTogether", async () => {
     const [signer, relayer] = await ethers.getSigners();
     poseidonContract = await getPoseidonFactory(2).connect(signer).deploy();
 
-    const verifier = await new Verifier__factory(signer).deploy();
+    const winningVerifier = await new WinningVerifier__factory(signer).deploy();
+
+    withdrawVerifier = await new WithdrawVerifier__factory(signer).deploy();
 
     const MerkleTreeInstance = await ethers.getContractFactory(
       "MerkleTreeWithHistoryMock"
@@ -57,12 +71,28 @@ describe("ZkPoolTogether", async () => {
     );
     await merkleTreeWithHistory.deployed();
 
+    // _verifierWithdraw: string,
+    // _verifierWinning: string,
+    // _wethGateway: string,
+    // _denomination: BigNumberish,
+    // _merkleTreeHeight: BigNumberish,
+    // _hasher: string,
+    // _relayer: string,
+    // _weth: string,
+    // _minutes: BigNumberish,
+
+    console.log({ relayer: relayer.getAddress() });
+
     ZKPool = await new Pool__factory(signer).deploy(
-      verifier.address,
+      withdrawVerifier.address,
+      winningVerifier.address,
+      "0xD1DECc6502cc690Bc85fAf618Da487d886E54Abe",
       ETH_AMOUNT,
       20,
       poseidonContract.address,
-      await relayer.getAddress()
+      await relayer.getAddress(),
+      "0x608D11E704baFb68CfEB154bF7Fd641120e33aD4",
+      3
     );
   });
 
@@ -100,217 +130,17 @@ describe("ZkPoolTogether", async () => {
   // });
 
   describe("Pool", async () => {
-    // it("#Deposit and withdraw", async () => {
-    //   const [depositor, relayer, withdrawer] = await ethers.getSigners();
-    //   const deposit = Deposit.new(poseidon);
-    //   const commitment = deposit.commitment;
-    //   const nullifierHash = deposit.nullifierHash;
-    //   const depositTransaction = await ZKPool.connect(depositor).deposit(
-    //     commitment,
-    //     nullifierHash,
-    //     {
-    //       value: ETH_AMOUNT,
-    //     }
-    //   );
-    //   const depositReciept = await depositTransaction.wait();
-
-    //   const events = await ZKPool.queryFilter(
-    //     ZKPool.filters.Deposit(),
-    //     depositReciept.blockHash
-    //   );
-
-    //   assert.equal(events[0].args.commitment, commitment);
-
-    //   // const tree = new MerkleTree(20, "test", new PoseidonHasher(poseidon));
-    //   // assert.equal(await tree.root(), await ZKPool.roots(0));
-    //   console.log({
-    //     commitment: deposit.commitment,
-    //   });
-    //   // await tree.insert(deposit.commitment);
-    //   // console.log({ root: await tree.root() });
-    //   // assert.equal(tree.totalElements, await ZKPool.nextIndex());
-    //   // assert.equal(await tree.root(), await ZKPool.roots(1));
-
-    //   const recipient = await withdrawer.getAddress();
-    //   const fee = 0;
-
-    //   // const { root, path_elements, path_index } = await tree.path(
-    //   //   deposit.leafIndex
-    //   // );
-
-    //   const { root, path_elements, path_index } = await generateMerkleProof(
-    //     deposit,
-    //     ZKPool,
-    //     poseidon
-    //   );
-
-    //   const witness = {
-    //     // Public
-    //     root,
-    //     nullifierHash,
-    //     recipient,
-    //     relayer: await relayer.getAddress(),
-    //     fee,
-    //     secret: 1,
-    //     // Private
-    //     nullifier: BigNumber.from(deposit.nullifier).toBigInt(),
-    //     pathElements: path_elements,
-    //     pathIndices: path_index,
-    //   };
-
-    //   console.log({ witness });
-
-    //   const solidityProof = await prove(witness);
-
-    //   const txWithdraw = await ZKPool.connect(relayer).withdraw(
-    //     solidityProof,
-    //     root,
-    //     nullifierHash,
-    //     recipient,
-    //     await relayer.getAddress(),
-    //     fee
-    //   );
-    //   const receiptWithdraw = await txWithdraw.wait();
-    // });
-
-    // it("#Deposit from 3 different accounts and withdraw 3 2 1", async () => {
-    //   const [
-    //     depositor,
-    //     relayer,
-    //     withdrawer,
-    //     depositorTwo,
-    //     withdrawerTwo,
-    //     depositorThree,
-    //     withdrawerThree,
-    //   ] = await ethers.getSigners();
-
-    //   const deposit = Deposit.new(poseidon);
-
-    //   const commitment = deposit.commitment;
-
-    //   const nullifierHash = deposit.nullifierHash;
-
-    //   const depositTransaction = await ZKPool.connect(depositor).deposit(
-    //     commitment,
-    //     nullifierHash,
-    //     {
-    //       value: ETH_AMOUNT,
-    //     }
-    //   );
-
-    //   let poolBalance = await provider.getBalance(ZKPool.address);
-
-    //   const depositReciept = await depositTransaction.wait();
-
-    //   expect(poolBalance).equals(ethers.utils.parseEther("0.1"));
-
-    //   const depositTwo = Deposit.new(poseidon);
-
-    //   const commitmentTwo = depositTwo.commitment;
-
-    //   const nullifierHashTwo = depositTwo.nullifierHash;
-
-    //   const depositTransactionTwo = await ZKPool.connect(depositorTwo).deposit(
-    //     commitmentTwo,
-    //     nullifierHashTwo,
-    //     {
-    //       value: ETH_AMOUNT,
-    //     }
-    //   );
-
-    //   poolBalance = await provider.getBalance(ZKPool.address);
-
-    //   console.log({ poolBalance });
-
-    //   expect(poolBalance).equals(ethers.utils.parseEther("0.2"));
-
-    //   const depositThree = Deposit.new(poseidon);
-
-    //   const commitmentThree = depositThree.commitment;
-
-    //   console.log({ commitmentThree });
-
-    //   const nullifierHashThree = depositThree.nullifierHash;
-
-    //   const depositTransactionThree = await ZKPool.connect(
-    //     depositorThree
-    //   ).deposit(commitmentThree, nullifierHashThree, {
-    //     value: ETH_AMOUNT,
-    //   });
-
-    //   poolBalance = await provider.getBalance(ZKPool.address);
-
-    //   console.log({ poolBalance });
-
-    //   expect(poolBalance).equals(ethers.utils.parseEther("0.3"));
-
-    //   // TODO migrate events test in seperate test
-    //   // const events = await Pool.queryFilter(
-    //   //   Pool.filters.Deposit(),
-    //   //   depositReciept.blockHash
-    //   // );
-
-    //   // assert.equal(events[0].args.commitment, commitment);
-
-    //   // deposit.leafIndex = events[0].args.leafIndex;
-
-    //   const recipient = await withdrawer.getAddress();
-    //   let recipientBalance = await provider.getBalance(recipient);
-
-    //   const fee = 0;
-
-    //   const {
-    //     root: rootThree,
-    //     path_elements: pathElementsThree,
-    //     path_index: pathIndicesThree,
-    //   } = await generateMerkleProof(depositThree, ZKPool, poseidon);
-
-    //   const witnessThree = {
-    //     // Public
-    //     root: rootThree,
-    //     nullifierHash: nullifierHashThree,
-    //     recipient,
-    //     relayer: await relayer.getAddress(),
-    //     fee,
-    //     // Private
-    //     secret: BigNumber.from(depositThree.secret).toBigInt(),
-    //     // Private
-    //     nullifier: BigNumber.from(depositThree.nullifier).toBigInt(),
-    //     pathElements: pathElementsThree,
-    //     pathIndices: pathIndicesThree,
-    //   };
-
-    //   console.log({ witnessThree }, { index: await ZKPool.nextIndex() });
-
-    //   const solidityProof = await prove(witnessThree);
-
-    //   const txWithdraw = await ZKPool.connect(relayer).withdraw(
-    //     solidityProof,
-    //     rootThree,
-    //     nullifierHashThree,
-    //     recipient,
-    //     await relayer.getAddress(),
-    //     fee
-    //   );
-    //   const receiptWithdrawThree = await txWithdraw.wait();
-
-    //   recipientBalance = await provider.getBalance(recipient);
-
-    //   expect(recipientBalance).equals(ethers.utils.parseEther("1000.2"));
-    // }).timeout(500000);
-
-    // TODO add the test case for the Nullifier spent case
-
     it("#Start A new Draw", async () => {
+      console.log("starting...");
       const [signer, depositor, withdrawer, relayer] =
         await ethers.getSigners();
-      const deposit = Deposit.new(poseidon);
+      const deposit = Deposit.new(8, poseidon);
+      console.log({ deposit });
       const commitment = deposit.commitment;
       const nullifierHash = deposit.nullifierHash;
       console.log({ nullifierHash });
       const depositTransaction = await ZKPool.connect(depositor).deposit(
         commitment,
-        nullifierHash,
         {
           value: ETH_AMOUNT,
         }
@@ -318,49 +148,48 @@ describe("ZkPoolTogether", async () => {
 
       const depositReciept = await depositTransaction.wait();
 
-      const transaction = await ZKPool.connect(signer).initDraw();
-      const reciept = transaction.wait();
+      console.log(depositReciept);
 
-      const address = await ZKPool.yieldGenerator();
-
-      const transactionHash = await signer.sendTransaction({
-        to: address,
-        value: ethers.utils.parseEther("1.0"), // Sends exactly 1.0 ether
-      });
-      
       await ethers.provider.send("evm_increaseTime", [300]);
       await ethers.provider.send("evm_mine", []);
 
-      const end = await ZKPool.connect(signer).triggerDrawEnd();
+      const end = await ZKPool.connect(depositor).triggerDrawEnd();
       await end.wait();
 
-      const drawBalance = await provider.getBalance(address);
+      // const drawBalance = await provider.getBalance(address);
 
       const draws = await ZKPool.getDraws();
 
       console.log({ draws });
 
-      console.log({ drawBalance });
+      // console.log({ drawBalance });
 
       const events = await ZKPool.queryFilter(
         ZKPool.filters.Deposit(),
         depositReciept.blockHash
       );
 
-      assert.equal(events[0].args.commitment, commitment);
+      console.log(events[0].args.commitment, commitment);
 
-      console.log({
-        commitment: deposit.commitment,
-      });
+      const saltedCommitment = await poseidonHash(poseidon, [
+        commitment,
+        draws[0].drawId,
+      ]);
+
+      console.log({ saltedCommitment });
+
+      assert.equal(events[0].args.commitment, saltedCommitment);
 
       const recipient = await withdrawer.getAddress();
       const fee = 0;
 
       const { root, path_elements, path_index } = await generateMerkleProof(
-        deposit,
+        saltedCommitment,
         ZKPool,
         poseidon
       );
+
+      console.log({ root, path_elements, path_index });
 
       const witness = {
         // Public
@@ -369,9 +198,11 @@ describe("ZkPoolTogether", async () => {
         recipient,
         relayer: await relayer.getAddress(),
         fee,
-        secret: BigNumber.from(deposit.secret).toBigInt(),
-        // Private
         nullifier: BigNumber.from(deposit.nullifier).toBigInt(),
+        secret: BigNumber.from(deposit.secret).toBigInt(),
+        blind: deposit.blind,
+        draw: draws[0].drawId.toNumber(),
+        random: draws[0].random.toNumber(),
         pathElements: path_elements,
         pathIndices: path_index,
       };
@@ -380,7 +211,9 @@ describe("ZkPoolTogether", async () => {
 
       const solidityProof = await prove(witness);
 
-      const txWithdraw = await ZKPool.connect(relayer).withdrawWinning(
+      // console.log({ solidityProof }, solidityProof.b);
+
+      const txWithdraw = await ZKPool.connect(relayer).withdraw(
         solidityProof,
         root,
         nullifierHash,
@@ -389,6 +222,7 @@ describe("ZkPoolTogether", async () => {
         fee,
         0
       );
+
       const receiptWithdraw = await txWithdraw.wait();
 
       const withdrawerBalance = await provider.getBalance(recipient);
