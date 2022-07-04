@@ -2,7 +2,7 @@
 /* eslint-disable camelcase */
 /* eslint-disable node/no-missing-import */
 
-// ZKPOOL deployed to: 0xC8b59e543cc298dECa3965a0d6c8612951bd2F24
+// ZKPOOL deployed to: d
 
 import { ethers } from "hardhat";
 
