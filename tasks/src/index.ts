@@ -20,6 +20,16 @@ function randomEntropy(length: number) {
   for (let i = 0; i < length; i++) {
     result += characters.charAt(Math.floor(Math.random() * charactersLength));
   }
+  return web3StringToBytes32(result);
+}
+function web3StringToBytes32(text: string) {
+  let result = ethers.utils.hexlify(ethers.utils.toUtf8Bytes(text));
+  while (result.length < 66) {
+    result += "0";
+  }
+  if (result.length !== 66) {
+    throw new Error("invalid web3 implicit bytes32");
+  }
   return result;
 }
 
@@ -30,7 +40,7 @@ export async function handler(credentials: RelayerParams) {
       speed: "fast",
     });
     const ZKPool = new ethers.Contract(
-      "0xd99A6aCb6Ee70a2CedBcA15B6f7c5A165509bb68",
+      "0xC8b59e543cc298dECa3965a0d6c8612951bd2F24",
       PoolABI.abi,
       signer
     );
