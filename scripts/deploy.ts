@@ -2,9 +2,7 @@
 /* eslint-disable camelcase */
 /* eslint-disable node/no-missing-import */
 
-// Withdraw Verifier deployed to: 0x98869e780d0A0bbB210CE2b410DE661c4391242C
-// Winning Verifier deployed to: 0x118fF3b4E3825cE3701412deed20C53A1e47E505
-// ZKPOOL deployed to: 0x6c1E9a3D2FbF50c3315f2d64F244e2895783B996
+// ZKPOOL deployed to: 0xC8b59e543cc298dECa3965a0d6c8612951bd2F24
 
 import { ethers } from "hardhat";
 

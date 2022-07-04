@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.10;
 
 import "./MerkleTreeWithHistory.sol";
 
@@ -13,10 +13,16 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 import "./interfaces/IWETH.sol";
 
+import "./libraries/UniformRandomNumber.sol";
+
+import {IAToken} from "@aave/core-v3/contracts/interfaces/IAToken.sol";
+
 contract Pool is MerkleTreeWithHistory, DrawManager, ReentrancyGuard {
     uint256 public immutable denomination;
 
     address constant POOL_PROXY = 0xE039BdF1d874d27338e09B55CB09879Dedca52D8;
+
+    address constant aWeth = 0x608D11E704baFb68CfEB154bF7Fd641120e33aD4;
 
     IVerifier public immutable withdrawVerifier;
     IVerifier public immutable winningVerifier;
@@ -25,7 +31,13 @@ contract Pool is MerkleTreeWithHistory, DrawManager, ReentrancyGuard {
 
     IWETH public WETH;
 
+    IAToken aWETH = IAToken(aWeth);
+
     mapping(bytes32 => bool) public nullifierHashes;
+
+    uint256 public deposits;
+
+    uint256 public reserves;
 
     struct Proof {
         uint256[2] a;
@@ -88,6 +100,7 @@ contract Pool is MerkleTreeWithHistory, DrawManager, ReentrancyGuard {
         );
 
         wethGateway.depositETH{value: msg.value}(POOL_PROXY, address(this), 0);
+        deposits += msg.value;
 
         emit Deposit(saltedCommitment, insertedIndex, block.timestamp);
     }
@@ -141,6 +154,7 @@ contract Pool is MerkleTreeWithHistory, DrawManager, ReentrancyGuard {
         );
 
         wethGateway.withdrawETH(POOL_PROXY, denomination - _fee, _recipient);
+        deposits -= denomination;
 
         if (_fee > 0) {
             (bool success, ) = _relayer.call{value: _fee}("");
@@ -200,7 +214,13 @@ contract Pool is MerkleTreeWithHistory, DrawManager, ReentrancyGuard {
             "Message value is supposed to be zero for ETH instance"
         );
 
-        wethGateway.withdrawETH(POOL_PROXY, denomination - _fee, _recipient);
+        wethGateway.withdrawETH(
+            POOL_PROXY,
+            denomination + draws[_drawId].reward - _fee,
+            _recipient
+        );
+        deposits -= denomination;
+        reserves -= draws[_drawId].reward;
 
         if (_fee > 0) {
             (bool success, ) = _relayer.call{value: _fee}("");
@@ -208,6 +228,7 @@ contract Pool is MerkleTreeWithHistory, DrawManager, ReentrancyGuard {
         }
 
         draws[_drawId].isSpent = true;
+        draws[_drawId].reward = 0;
 
         emit Withdrawal(_recipient, _nullifierHash, _relayer, _fee);
     }
@@ -237,9 +258,28 @@ contract Pool is MerkleTreeWithHistory, DrawManager, ReentrancyGuard {
         return xmr % bound;
     }
 
+    function calculateReward() internal returns (uint256) {
+        uint256 poolBalance = aWETH.balanceOf(address(this));
+        uint256 reward = poolBalance - deposits - reserves;
+        reserves += reward;
+        return reward;
+    }
+
+    function getBalance() public view returns (uint256) {
+        uint256 poolBalance = aWETH.balanceOf(address(this));
+        return poolBalance;
+    }
+
+    function vrf(bytes32 _entropy) public pure returns (uint256) {
+        uint256 randomNumber = uint256(keccak256(abi.encodePacked(_entropy)));
+        uint256 upperLimit = 100;
+        return UniformRandomNumber.uniform(randomNumber, upperLimit);
+    }
+
     // fix the issue of the random
-    function triggerDraw(uint256 _minutes) public {
-        uint256 index = random(5);
-        _triggerDraw(index, _minutes);
+    function triggerDraw(uint256 _minutes, bytes32 _entropy) public {
+        uint256 reward = calculateReward();
+        uint256 index = vrf(_entropy);
+        _triggerDraw(currentDrawId, index, _minutes, reward);
     }
 }

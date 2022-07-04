@@ -1,6 +1,6 @@
 //  SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.10;
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
@@ -14,7 +14,7 @@ contract DrawManager is Ownable {
         uint256 endTime;
         bool isCompleted;
         bool isSpent;
-        uint256 amount;
+        uint256 reward;
         uint256 random;
     }
 
@@ -60,23 +60,22 @@ contract DrawManager is Ownable {
                 endTime: endTime,
                 isCompleted: false,
                 isSpent: false,
-                amount: 0,
+                reward: 0,
                 random: 0
             })
         );
         emit LogNewLottery(msg.sender, block.timestamp, endTime);
     }
 
-    function _triggerDraw(uint256 index, uint256 _minutes)
-        public
-        isCompleted(currentDrawId)
-        isTimeEnded(currentDrawId)
-        onlyOwner
-        isDrawActive
-    {
-        draws[currentDrawId].isCompleted = true;
-        draws[currentDrawId].amount = 0;
-        draws[currentDrawId].random = index;
+    function _triggerDraw(
+        uint256 drawId,
+        uint256 index,
+        uint256 _minutes,
+        uint256 reward
+    ) public isCompleted(drawId) isTimeEnded(drawId) onlyOwner isDrawActive {
+        draws[drawId].isCompleted = true;
+        draws[drawId].reward = reward;
+        draws[drawId].random = index;
 
         uint256 endTime = block.timestamp + (_minutes * 1 minutes);
 
@@ -88,7 +87,7 @@ contract DrawManager is Ownable {
                 endTime: endTime,
                 isCompleted: false,
                 isSpent: false,
-                amount: 0,
+                reward: 0,
                 random: 0
             })
         );
