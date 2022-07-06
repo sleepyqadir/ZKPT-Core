@@ -1,144 +1,65 @@
-# ZK PoolTogether
 
-ZkPoolTogether is the zkp version of PoolTogether; usage of zero-knowledge proof systems will protect users' identity, and the amount users are depositing. 
+![Adobe_Express_20220628_1330280 3379003718744713](https://user-images.githubusercontent.com/38910854/177583308-a8ba83f6-50d2-4919-a111-c5f7cde3073d.png)
 
-## PoolTogether:
+# zkPoolTogether
 
-PoolTogether is a crypto-powered savings protocol based on Premium Bonds. Save money and have a chance to win every week. In PoolTogether, the user deposits funds in the pool and has a chance to win a prize awarded every day. If the user doesn't win, he can withdraw the deposited money.
+ZkPoolTogether is the zkp version of PoolTogether; usage of zero-knowledge proof systems will protect users' identity, and the blind guess number user selected while depositing. For example, users can prove that they have deposited and selected X number in the pool and claim the reward without revealing any knowledge.
 
-## PoolTogether User Journey:
-- Users can connect to which blockchain they want to deposit.
-- Then, users can deposit USDC to the pool, representing the share of your token in the pool.
-- The amount can be arbitrary. 
-- Amounts are then invested in strategies to gain yield. 
-- After every 24 hours, the VRF function from chainlink picks a random user who wins the lottery price. 
-- The winner can claim the winning price within 60 days. 
+The project is currently live and frontend is hosted
 
-The overview of the work looks like this, but there are some minor details as well, such as pool sizes, etc., which relate to the amount you have deposited and the average time you have deposited. 
+- Mainnet
+    ----
+    - Network: Polgon Mainnet
+    - App Url: https://zkpt-ui.vercel.app/
+- Testnet
+    ---- 
+    - Network: Rinkebt Testnet
+    - App Url: https://testnet-zkpt-ui.vercel.app/
 
-But we won’t be diving deep into those things. 
+## Demo
 
-## Scope of zkPoolTogether [Advantages]:
-ZkPoolTogether is the zkp version of PoolTogether; usage of zero-knowledge proof systems will protect users' identity, and the amount users are depositing. For example, users can prove that they have deposited X amount in the pool and claim the reward without revealing any knowledge.
-## Working of the ZkPoolTogether:
-### Actors:
-Actors include users involved in the overall process of ZkPoolTogether and entities that interact with the smart contract and Frontend of the system.
+https://studio.youtube.com/video/bFdyjDphY6w/edit
 
-#### Depositor:
-User that deposits the amount in the pool and creates the commitment hash using the unique secret and nullifier.
+## Contract Addresses
 
-#### Relayer Node: 
-A central server that triggers the yield collection selects the winner through a VRF function in a smart contract.
-#### Withdrawer: 
-User who withdraws the winning amount from the pool by proving the commitment hash.
+- Testnet:
+   --
+    - Relayer Address: **0x99d667ff3e5891a5f40288cb94276158ae8176a0**
+    - Pool Address: **0xC8b59e543cc298dECa3965a0d6c8612951bd2F24**
+    - Withdraw Verifier: **0x98869e780d0A0bbB210CE2b410DE661c4391242C**
+    - Winning Verifier:  **0x118fF3b4E3825cE3701412deed20C53A1e47E505**
+    - Strategy Pool wethGateway: **0xD1DECc6502cc690Bc85fAf618Da487d886E54Abe**
+    - Poseidon Hasher: **0x25352E780f664623a0DdCF8Cd136b9D5fD04bb06**
+    - weth: **0x25352E780f664623a0DdCF8Cd136b9D5fD04bb06**
+    - POOL_PROXY: **0xE039BdF1d874d27338e09B55CB09879Dedca52D8**
+    - aWeth: **0x608D11E704baFb68CfEB154bF7Fd641120e33aD4**
 
-### Case Scenarios: 
-Below are the high-level case scenarios through which actors will pass and interact with the system Frontend, Smart Contract, and circuits.
-		
-#### Generating Commitment Hash:
+- Mainnet
+    --
+    - Relayer Address: **0xf61c320cbfebf96ab97fa667fee931eecd417be5**
+    - Pool Address: **0xebC02B3371ef6f01309c5cC2Ef32a755FDeeEDef**
+    - Withdraw Verifier: **0xA680E910f33B4F01575ef11462A321055F90833d**
+    - Winning Verifier:  **0x3d84a4a3f61bc0e8812b6B5cc457fE24fd9F1dF4**
+    - Strategy Pool wethGateway: **0x9BdB5fcc80A49640c7872ac089Cc0e00A98451B6**
+    - Poseidon Hasher: **0xb5107cd5157C6D8E452F170Eaa0183d79c60E88D**
+    - wMatic: **0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270**
+    - POOL_PROXY: **0x794a61358D6845594F94dc1DB02A252b5b4814aD**
+    - aWMatic: **0x6d80113e533a2C0fe82EaBD35f1875DcEA89Ea97**
 
-[image]
-#### Depositing in the Pool:
 
-[image]
-#### Relayer Triggering the get yield and selecting the winner:
 
-[image]
-#### Winner checks that he is eligible for the prize:
+## Architecture
 
-[image]
-#### Withdraw the prize to another address:
+![hh drawio](https://user-images.githubusercontent.com/38910854/177583122-10e0ffc5-c497-421a-8065-7d8b93fb7b20.png)
 
-[image]
-## Architecture Overview: 
-There are five main components of the system: Pool Contract, VRF Contract, Mock Strategy Contract, Circuits, Relayer, and the Frontend ( denoted as a user ). In the Future, Indexer will also be a part of the architecture.
+## Project Structure
 
-[image]
-## Protocol:
-### Contracts: 
-This section describes the smart contracts and their high-level working and usage in the ZkPoolTogether.
-
-#### Strategy Mock Contract: 
-Strategy Mock Contract will generate a random yield after a fixed amount of time, sent to the pool contract to give the winning prize to the user who won the lottery. 
-#### Harmony VRF:
-Harmony VRF function will be used here to generate the true randomness to select the winner after the end time of the pool.
-
-Harmony brings the technology of VRF (Verifiable Random Function) natively on a chain to create an optimal solution for the randomness that is unpredictable, unbiased, verifiable, and immediately available.
-#### Pool Contract:
-The core contract will be the updated tornado cash classic pool version. This contract allows users to deposit into the current Pool. After a fixed amount of time, a yield generated from the mock strategy contract is taken to the pool contract, and a winner is picked using the VRF function.
-
-The user can also withdraw by proving his commitment exists in the Merkle root and checking whether he is the winner or not to withdraw funds to another address.
-#### Merkle Tree History Contract:
-When the User deposits an amount on the Pool contract, the user must provide a commitment hash. This commitment hash will be stored in a Merkle tree. Then, when the user withdraws this amount and prize with a different account, you have to provide two zero-knowledge proofs. The first proves that the Merkel tree contains your commitment. This proof is a zero-knowledge proof of a Merkle proof. But this is not enough because the user should be allowed to withdraw the deposited amount and prize only once. Because of this, the user has to provide a unique nullifier for the commitment. The contract stores this nullifier; This ensures that users don't be able to withdraw the deposited money more than one time.
-
-The nullifier is guaranteed by the commitment generation method. The commitment is generated from the nullifier and a secret by hashing. If you change the nullifier, so one nullifier can be used for only one commitment. Because of the one-way nature of hashing, it’s not possible to link the commitment and the nullifier, but we can generate a ZKP.
-
-[image]
-### Relayer: 
-A center relayer triggers the Pool Contract EndDraw function transaction after fixed amounts of time, triggering the GenerateYield on Mock Strategy Contract to create the yield and triggering the VRF contract function to select the random nullifier as a winner.
-### Circuits: 
-The circuit defines a set of constraints that must be satisfied to accept a given result in the Smart Contract.
-#### Merkle Tree Checker Circuit:
-Merkle Tree Checker circuit is used to verify that the given path elements and root of the provided leaf is present in the Merkle tree. This circuit is the same as the tornado cash classic Merkle tree circuit used to prove the commitment is the part of the Merkle tree.
-#### Commitment hasher: 
-It generates the steadfast commitment and nullifier hash using the private secret and nullifier. In this case, a secret and nullifier are not exposed to the external server and smart contract. Then, as I wrote before, the template calculates the nullifier and commitment hash, which is a hash of the nullifier and the secret.
-#### Withdraw:
-It has two public inputs, the Merkle root, and the nullifierHash. The Merkle root is needed to verify the Merkle proof, and the nullifierHash is required by the smart contract to store it. The private input parameters are the nullifier, the secret, and the path elements and pathIndices of the Merkle proof. The circuit checks the nullifier by generating the commitment from it and the secret and matches the given Merkle proof. If everything is fine, the zero-knowledge proof will be generated the TC smart contract can validate that.
-
-### Frontend [User Interface]: 
-Frontend Includes all the user interfaces to interact with the smart contracts and generate the proofs using the wasm and Zkey generated files of the circuits. Following are the components of the frontend user interface:
-
-#### Main Page:
-Display the details and information about the ZkPoolTogether
-#### App Page:
-Main Application page allows users to navigate the deposit, withdraw, and prizes pages.
-
-#### Deposit Page:
-Allowing the user to create a commitment and deposit amount in the pool
-#### Withdraw Page:
-This allows the user to remove the amount and generate proof of valid commitment.
-
-#### Prizes Page:
-Allows the user to claim the prize by proofing the commitment
-Draw Pages: Display data regarding all the going and past draws of ZkPoolTogether
-
-### Indexer:
-The indexer will be used to get the real-time data of the draws from the smart contracts and the draw winners on display on the front end.
-
-For Indexer, we will use the Graph, an indexing protocol for querying networks like Ethereum and IPFS. Anyone can build and publish open APIs, called subgraphs, making data easily accessible.
-
-## Implementation [Tech Stack]:
-As mentioned earlier, we implemented the proposed design of
-
-- Circuits: zkSNARK (Groth16) Circom circuit
-- Smart contracts: solidity on-chain registry of processes.
-- Foundry: a modular toolkit for Ethereum application development
-- Node: Relayer node, typescript based. 
-- Client lib: typescript library used in the user’s browser to create keys,
-- NextJs: for the development of the user interface 
-
-## Out of Scope:
-
-[to be added]
-
-## Foldrer Structure
-
-``` bash
-
+```
 .
 ├── circuits
-│   ├── build
-│   │   ├── circuit_0000.zkey
-│   │   ├── circuit_final.zkey
-│   │   ├── verification_key.json
-│   │   ├── withdraw_js
-│   │   │   ├── generate_witness.js
-│   │   │   ├── withdraw.wasm
-│   │   │   └── witness_calculator.js
-│   │   ├── withdraw.r1cs
-│   │   └── withdraw.sym
 │   ├── merkleTree.circom
 │   ├── powersOfTau28_hez_final_20.ptau
+│   ├── winning.circom
 │   └── withdraw.circom
 ├── classes
 │   ├── Deposit.ts
@@ -149,22 +70,28 @@ As mentioned earlier, we implemented the proposed design of
 │   ├── DrawManager.sol
 │   ├── interfaces
 │   │   ├── IHasher.sol
-│   │   └── IVerifier.sol
+│   │   ├── IVerifier.sol
+│   │   ├── IWETHGateway.sol
+│   │   └── IWETH.sol
+│   ├── libraries
+│   │   └── UniformRandomNumber.sol
 │   ├── MerkleTreeWithHistory.sol
-│   ├── mocks
-│   │   └── MerkleTreeWithHistoryMock.sol
-│   ├── Ownable.sol
+│   ├── Mocks
+│   │   ├── MerkleTreeWithHistoryMock.sol
+│   │   └── MockYieldGenerator.sol
 │   ├── Pool.sol
-│   ├── verifier.sol
-│   └── YieldGenerator.sol
+│   ├── WinningVerifier.sol
+│   └── WithdrawVerifier.sol
 ├── hardhat.config.ts
 ├── nethereum-gen.settings
 ├── package.json
 ├── package-lock.json
+├── powersOfTau28_hez_final_20.ptau
 ├── README.md
 ├── scripts
 │   ├── bump-solidity.ts
-│   ├── compile-circuit.sh
+│   ├── compile-winning-circuit.sh
+│   ├── compile-withdraw-circuit.sh
 │   └── deploy.ts
 ├── src
 │   └── merkleTree.ts
@@ -181,31 +108,132 @@ As mentioned earlier, we implemented the proposed design of
 ├── test
 │   └── index.test.ts
 ├── tsconfig.json
-├── typechain
-│   ├── common.d.ts
-│   ├── DrawManager.d.ts
-│   ├── factories
-│   │   ├── DrawManager__factory.ts
-│   │   ├── IHasher__factory.ts
-│   │   ├── IVerifier__factory.ts
-│   │   ├── MerkleTreeWithHistory__factory.ts
-│   │   ├── MerkleTreeWithHistoryMock__factory.ts
-│   │   ├── Ownable__factory.ts
-│   │   ├── Pool__factory.ts
-│   │   ├── Verifier__factory.ts
-│   │   └── YieldGenerator__factory.ts
-│   ├── hardhat.d.ts
-│   ├── IHasher.d.ts
-│   ├── index.ts
-│   ├── IVerifier.d.ts
-│   ├── MerkleTreeWithHistory.d.ts
-│   ├── MerkleTreeWithHistoryMock.d.ts
-│   ├── Ownable.d.ts
-│   ├── Pool.d.ts
-│   ├── Verifier.d.ts
-│   └── YieldGenerator.d.ts
 ├── utils
 │   └── index.ts
 └── yarn.lock
 
 ```
+
+#### Frontend:
+
+Please visit the ZKPT_UI repository for frontend project Structure.
+
+https://github.com/sleepyqadir/ZKPT_UI
+
+
+## Run Locally
+
+Clone the project
+
+```bash
+  git clone https://github.com/sleepyqadir/ZKPT_UI
+```
+
+Go to the project directory
+
+```bash
+  cd ZKPT-Core
+```
+
+Install dependencies
+
+```bash
+  npm install
+```
+
+Compile and build circuits
+
+```bash
+
+npm run circuits
+
+```
+
+Compile contracts
+
+```bash
+  
+  build:contracts:compile
+
+```
+## Running Tests
+
+To run tests, run the following command
+
+```bash
+
+  npx hardhat test
+
+```
+
+
+## Deployment
+
+To deploy this project on rinkeby run : Please change the config in deploy file before deploying as right now it is manually configured for mainnet deployment. It will be reverted back soon
+
+```bash
+
+  npm run deploy:rinkeby
+
+```
+
+
+## Screenshots
+
+**Home Page**
+
+![Screenshot from 2022-07-06 20-20-32](https://user-images.githubusercontent.com/38910854/177586071-be9b6f9a-bd46-4501-9f19-6b4191650934.png)
+
+**App Page aka Deposit Page**
+![Screenshot from 2022-07-06 20-19-30](https://user-images.githubusercontent.com/38910854/177586087-3b082b9b-8d90-4eed-b666-765a153dc591.png)
+
+**Draws Page**
+![Screenshot from 2022-07-06 20-19-34](https://user-images.githubusercontent.com/38910854/177586112-6490e704-d7ba-4af8-928d-b9b58c10f0e2.png)
+
+**Check Draw Page**
+![Screenshot from 2022-07-06 20-19-42](https://user-images.githubusercontent.com/38910854/177586134-a0ae878e-5dc1-47ef-9bc0-dc0ac82529ea.png)
+
+**Check Draw Page For Withdraw**
+![Screenshot from 2022-07-06 20-20-13](https://user-images.githubusercontent.com/38910854/177586154-f963c6cf-12cf-4a43-9c09-3212ddd268e8.png)
+
+
+
+## Tech Stack
+
+**Circuits:** Circom, Groth16, Snarkjs, Circom Tester
+
+**Contracts:** Solidity, Hardhat, Ethers, Typechain
+
+**Server:** Defender Oppenzeppline
+
+**Client:** NextJs, ChakraUI, Emotion, Ethers, SWR
+
+
+## Acknowledgements
+
+ - [Hardhat](https://hardhat.org/)
+ - [Pool Together](https://pooltogether.com/)
+ - [Tornado Cash](https://tornado.cash/)
+ - [Vercel](https://vercel.com/dashboard)
+ - [Mashko Next web3 boilerplate](https://github.com/mirshko/next-web3-boilerplate)
+
+
+
+## Support
+
+For support,
+- email: qadir@xord.com
+- dicord: AbdulQadir#0432
+- twiiter: [sleepyqadir](https://twitter.com/sleepyqadir)
+
+
+## Authors
+
+- [@sleepyqadir](https://www.github.com/sleepyqadir)
+
+
+## 🔗 Links
+[![portfolio](https://img.shields.io/badge/my_portfolio-000?style=for-the-badge&logo=ko-fi&logoColor=white)](https://katherinempeterson.com/)
+[![linkedin](https://img.shields.io/badge/linkedin-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/)
+[![twitter](https://img.shields.io/badge/twitter-1DA1F2?style=for-the-badge&logo=twitter&logoColor=white)](https://twitter.com/sleepyqadir)
+
